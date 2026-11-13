@@ -1,6 +1,6 @@
-//! Opslag in SQLite. Elke entiteit is een JSON-document in een eigen tabel;
-//! relaties staan daarnaast als echte kolommen met foreign keys, zodat
-//! verwijderen netjes doorwerkt (ruimtes/markeringen van een verdieping, enz.).
+//! SQLite storage. Every entity is a JSON document in its own table;
+//! relations are also stored as real columns with foreign keys, so that
+//! deletes cascade properly (rooms/markers of a floor, etc.).
 
 use std::path::Path;
 
@@ -38,7 +38,7 @@ pub fn open(data_dir: &Path) -> anyhow::Result<Connection> {
     Ok(conn)
 }
 
-// ---------------------------------------------------------------- gebruikers
+// ---------------------------------------------------------------- users
 
 pub fn upsert_user(c: &Connection, name: &str, hash: &str) -> rusqlite::Result<()> {
     c.execute(
@@ -95,14 +95,14 @@ pub fn now() -> i64 {
         .unwrap_or(0)
 }
 
-// ---------------------------------------------------------------- entiteiten
+// ---------------------------------------------------------------- entities
 
-/// Gemeenschappelijk gedrag van alle opgeslagen documenten.
+/// Shared behaviour of all stored documents.
 pub trait Entity: Serialize + DeserializeOwned + Default + Clone + Send + 'static {
     const TABLE: &'static str;
-    /// Velden die de client mag zetten bij aanmaken/wijzigen.
+    /// Fields the client may set on create/update.
     const EDITABLE: &'static [&'static str];
-    /// Kolommen met relaties (naast id en data).
+    /// Relation columns (besides id and data).
     const REFS: &'static [&'static str] = &[];
 
     fn id(&self) -> &str;
@@ -110,15 +110,15 @@ pub trait Entity: Serialize + DeserializeOwned + Default + Clone + Send + 'stati
     fn refs(&self) -> Vec<Option<String>> {
         vec![]
     }
-    /// Aangeroepen vlak voor opslaan; `created` is true bij een nieuw document.
+    /// Called right before saving; `created` is true for a new document.
     fn touch(&mut self, _user: &str, _created: bool) {}
-    /// Opruimen vóór verwijderen; geeft bestanden terug die weg mogen.
+    /// Clean-up before deleting; returns files that can be removed.
     fn on_delete(&self, _c: &Connection) -> rusqlite::Result<Vec<String>> {
         Ok(vec![])
     }
 }
 
-/// Aantekeningen die aan een verdwenen ruimte/zone hingen worden weer "algemeen".
+/// Notes attached to a deleted room/zone become "global" again.
 fn unscope_notes(c: &Connection, scope_id: &str) -> rusqlite::Result<()> {
     for mut n in all::<Note>(c)? {
         if n.scope_id.as_deref() == Some(scope_id) {
@@ -150,7 +150,7 @@ pub fn get<T: Entity>(c: &Connection, id: &str) -> rusqlite::Result<Option<T>> {
 }
 
 pub fn save<T: Entity>(c: &Connection, item: &T) -> rusqlite::Result<()> {
-    let data = serde_json::to_string(item).expect("serialiseerbaar");
+    let data = serde_json::to_string(item).expect("serializable");
     let mut cols = vec!["id", "data"];
     cols.extend_from_slice(T::REFS);
     let placeholders: Vec<String> = (1..=cols.len()).map(|i| format!("?{i}")).collect();
@@ -173,18 +173,18 @@ pub fn delete<T: Entity>(c: &Connection, id: &str) -> rusqlite::Result<usize> {
     c.execute(&format!("DELETE FROM {} WHERE id = ?1", T::TABLE), [id])
 }
 
-// ---------------------------------------------------------------- modellen
+// ---------------------------------------------------------------- models
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct Floor {
     pub id: String,
     pub name: String,
-    /// Bestandsnaam van de achtergrond (PNG) in data/files.
+    /// File name of the background (PNG) in data/files.
     pub image: String,
     pub width: f64,
     pub height: f64,
-    /// Schaal: meters per pixel van de achtergrond. Leeg = nog niet gekalibreerd.
+    /// Scale: metres per pixel of the background. Empty = not calibrated yet.
     pub m_per_px: Option<f64>,
     pub sort: i64,
 }
@@ -213,11 +213,11 @@ pub struct Room {
     pub floor_id: String,
     pub name: String,
     pub color: String,
-    /// Polygoon over de binnenkant van de wanden, in pixels van de achtergrond.
+    /// Polygon along the inside of the walls, in background pixels.
     pub points: Vec<[f64; 2]>,
-    /// Plafondhoogte in meters (optioneel, voor inhoud).
+    /// Ceiling height in metres (optional, for volume).
     pub ceiling_height: Option<f64>,
-    /// Vaste todo's per ruimte (vloer, wand, plafond, elektra) → afgestreept?
+    /// Fixed todos per room (floor, wall, ceiling, electrical) → done?
     pub checks: std::collections::BTreeMap<String, bool>,
 }
 
@@ -323,16 +323,16 @@ impl Entity for Note {
 pub struct Image {
     pub id: String,
     pub note_id: String,
-    /// Verkleinde versie (max 2000 px) om te bekijken.
+    /// Downscaled version (max 2000 px) for viewing.
     pub file: String,
-    /// Miniatuur (max 480 px).
+    /// Thumbnail (max 480 px).
     pub thumb: String,
-    /// Het originele bestand zoals het geüpload is.
+    /// The original file as uploaded.
     pub orig: String,
     pub width: u32,
     pub height: u32,
     pub name: String,
-    /// Herkomst als het plaatje via een link is toegevoegd.
+    /// Source URL when the image was added from a link.
     pub source: String,
     pub created: i64,
 }
@@ -355,8 +355,8 @@ impl Entity for Image {
     }
 }
 
-/// Iets met een plek op de plattegrond: een speld naar een aantekening
-/// (`kind = "note"`) of een installatiepunt (stopcontact, schakelaar, lichtpunt…).
+/// Something with a position on the floor plan: a pin to a note
+/// (`kind = "note"`) or a fixture (socket, switch, light point…).
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct Marker {
@@ -365,13 +365,13 @@ pub struct Marker {
     pub kind: String,
     pub x: f64,
     pub y: f64,
-    /// Graden; bij wandpunten wijst de lokale +y-as de ruimte in.
+    /// Degrees; for wall fixtures the local +y axis points into the room.
     pub rotation: f64,
     pub note_id: Option<String>,
     pub label: String,
-    /// Montagehoogte in cm boven de vloer.
+    /// Mounting height in cm above the floor.
     pub height_cm: Option<f64>,
-    /// Voor schakelaars: de lichtpunten die ermee bediend worden.
+    /// For switches: the light points they control.
     pub controls: Vec<String>,
 }
 

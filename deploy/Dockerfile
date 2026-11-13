@@ -1,4 +1,4 @@
-# Runtime-image voor een lokaal gebouwde binary (zie deploy/deploy.sh).
+# Runtime image for a locally built binary (see deploy/deploy.sh).
 FROM ubuntu:26.04
 RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils ca-certificates \
     && rm -rf /var/lib/apt/lists/*

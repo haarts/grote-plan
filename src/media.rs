@@ -1,4 +1,4 @@
-//! Beeldverwerking: PDF van de architect → PNG per pagina, foto's → verkleind + miniatuur.
+//! Image processing: architect's PDF → one PNG per page, photos → downscaled + thumbnail.
 
 use std::{io::Cursor, path::Path};
 
@@ -15,10 +15,10 @@ pub struct Page {
     pub height: u32,
 }
 
-/// Langste zijde van een gerenderde plattegrond in pixels.
+/// Longest side of a rendered floor plan in pixels.
 const PLAN_PX: u32 = 4000;
 
-/// Zet een PDF (alle pagina's) om naar PNG's met `pdftoppm` (poppler-utils).
+/// Converts a PDF (all pages) to PNGs with `pdftoppm` (poppler-utils).
 pub fn pdf_to_pages(pdf: &[u8], data_dir: &Path) -> anyhow::Result<Vec<Page>> {
     let tmp = data_dir.join("tmp").join(new_id());
     std::fs::create_dir_all(&tmp)?;
@@ -32,15 +32,15 @@ pub fn pdf_to_pages(pdf: &[u8], data_dir: &Path) -> anyhow::Result<Vec<Page>> {
             .arg(&input)
             .arg(tmp.join("p"))
             .output()
-            .context("pdftoppm niet gevonden — installeer poppler-utils")?;
+            .context("pdftoppm not found — install poppler-utils")?;
         if !out.status.success() {
-            bail!("PDF omzetten mislukt: {}", String::from_utf8_lossy(&out.stderr));
+            bail!("PDF conversion failed: {}", String::from_utf8_lossy(&out.stderr));
         }
         let mut pngs: Vec<_> = std::fs::read_dir(&tmp)?
             .filter_map(|e| e.ok().map(|e| e.path()))
             .filter(|p| p.extension().is_some_and(|e| e == "png"))
             .collect();
-        // p-1.png, p-2.png … of p-01.png: sorteer op paginanummer.
+        // p-1.png, p-2.png … or p-01.png: sort by page number.
         pngs.sort_by_key(|p| {
             p.file_stem()
                 .and_then(|s| s.to_str())
@@ -56,7 +56,7 @@ pub fn pdf_to_pages(pdf: &[u8], data_dir: &Path) -> anyhow::Result<Vec<Page>> {
             pages.push(Page { file, width, height });
         }
         if pages.is_empty() {
-            bail!("de PDF bevat geen pagina's");
+            bail!("the PDF has no pages");
         }
         Ok(pages)
     })();
@@ -64,7 +64,7 @@ pub fn pdf_to_pages(pdf: &[u8], data_dir: &Path) -> anyhow::Result<Vec<Page>> {
     result
 }
 
-/// Een plattegrond die als afbeelding (PNG/JPG) is aangeleverd.
+/// A floor plan supplied as an image (PNG/JPG).
 pub fn plan_image(bytes: &[u8], data_dir: &Path) -> anyhow::Result<Page> {
     let img = decode(bytes)?;
     let img = if img.width().max(img.height()) > 6000 {
@@ -90,7 +90,7 @@ pub fn photo(bytes: &[u8], original_name: &str, data_dir: &Path) -> anyhow::Resu
     let id = new_id();
     let files = data_dir.join("files");
 
-    // Extensie volgens het echte formaat (een link zegt niet altijd wat het is).
+    // Extension from the actual format (a link doesn't always tell what it is).
     let ext = match image::guess_format(bytes) {
         Ok(image::ImageFormat::Png) => "png".to_string(),
         Ok(image::ImageFormat::WebP) => "webp".to_string(),
@@ -124,7 +124,7 @@ pub fn photo(bytes: &[u8], original_name: &str, data_dir: &Path) -> anyhow::Resu
 fn decode(bytes: &[u8]) -> anyhow::Result<DynamicImage> {
     let reader = ImageReader::new(Cursor::new(bytes)).with_guessed_format()?;
     if reader.format().is_none() {
-        bail!("onbekend bestandsformaat (gebruik JPG, PNG, WEBP of GIF; HEIC wordt niet ondersteund)");
+        bail!("unknown file format (use JPG, PNG, WEBP or GIF; HEIC is not supported)");
     }
     let mut decoder = reader.into_decoder()?;
     let orientation = decoder.orientation()?;
@@ -134,7 +134,7 @@ fn decode(bytes: &[u8]) -> anyhow::Result<DynamicImage> {
 }
 
 fn write_jpeg(img: &DynamicImage, path: &Path, quality: u8) -> anyhow::Result<()> {
-    // Transparantie op wit zetten, anders wordt het zwart in JPEG.
+    // Flatten transparency onto white, otherwise it turns black in JPEG.
     let rgba = img.to_rgba8();
     let mut rgb = image::RgbImage::new(rgba.width(), rgba.height());
     for (x, y, p) in rgba.enumerate_pixels() {

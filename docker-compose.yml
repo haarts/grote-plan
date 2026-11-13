@@ -7,5 +7,5 @@ services:
     volumes:
       - ./data:/data
     environment:
-      # Zet op 1 zodra de site via https (reverse proxy) bereikbaar is.
+      # Set to 1 once the site is served over https (reverse proxy).
       GP_SECURE_COOKIE: "0"

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,8 +14,8 @@
   <div class="brand">Grote <span>Plan</span></div>
   <nav id="floors" class="floors"></nav>
   <div class="top-right">
-    <span id="live" class="live" title="Live verbonden"></span>
-    <form method="post" action="/logout"><button class="ghost small" id="me" title="Uitloggen"></button></form>
+    <span id="live" class="live" title="Live connected"></span>
+    <form method="post" action="/logout"><button class="ghost small" id="me" title="Sign out"></button></form>
   </div>
 </header>
 
@@ -36,30 +36,30 @@
 
     <div class="maptools tl">
       <div class="seg" id="modes">
-        <button data-mode="view" title="Bekijken">Bekijken</button>
-        <button data-mode="install" title="Elektra plaatsen">Elektra</button>
-        <button data-mode="rooms" title="Ruimtes tekenen en bewerken">Ruimtes</button>
-        <button data-mode="scale" title="Schaal instellen">Schaal</button>
-        <button data-mode="measure" title="Afstanden meten (wordt niet bewaard)">Meten</button>
+        <button data-mode="view" title="View">View</button>
+        <button data-mode="install" title="Place electrical fixtures">Electrical</button>
+        <button data-mode="rooms" title="Draw and edit rooms">Rooms</button>
+        <button data-mode="scale" title="Set the scale">Scale</button>
+        <button data-mode="measure" title="Measure distances (not saved)">Measure</button>
       </div>
     </div>
     <div class="maptools tr">
-      <button class="icon" id="zoom-in" title="Inzoomen">+</button>
-      <button class="icon" id="zoom-out" title="Uitzoomen">−</button>
-      <button class="icon" id="zoom-fit" title="Passend maken">⤢</button>
-      <button class="icon" id="layers-btn" title="Lagen">☰</button>
+      <button class="icon" id="zoom-in" title="Zoom in">+</button>
+      <button class="icon" id="zoom-out" title="Zoom out">−</button>
+      <button class="icon" id="zoom-fit" title="Fit to screen">⤢</button>
+      <button class="icon" id="layers-btn" title="Layers">☰</button>
       <div id="layers" class="layers hidden">
-        <label><input type="checkbox" data-layer="notes" checked> Aantekeningen</label>
-        <label><input type="checkbox" data-layer="elec" checked> Elektra</label>
-        <label><input type="checkbox" data-layer="rooms" checked> Ruimtes</label>
-        <label><input type="checkbox" data-layer="dims"> Alle maten</label>
-        <label><input type="checkbox" data-layer="plan" checked> Tekening</label>
+        <label><input type="checkbox" data-layer="notes" checked> Notes</label>
+        <label><input type="checkbox" data-layer="elec" checked> Electrical</label>
+        <label><input type="checkbox" data-layer="rooms" checked> Rooms</label>
+        <label><input type="checkbox" data-layer="dims"> All dimensions</label>
+        <label><input type="checkbox" data-layer="plan" checked> Drawing</label>
       </div>
     </div>
     <div id="palette" class="palette hidden"></div>
     <div id="roombar" class="roombar hidden"></div>
     <div id="popover" class="popover hidden"></div>
-    <button id="split" class="split" title="Kaart groter/kleiner">⇕</button>
+    <button id="split" class="split" title="Map larger/smaller">⇕</button>
   </section>
 
   <section id="panel"></section>
@@ -67,7 +67,7 @@
 
 <div id="ghost" class="ghost hidden"></div>
 <dialog id="modal" class="modal" closedby="any" aria-labelledby="modal-title"></dialog>
-<dialog id="lightbox" class="lightbox" closedby="any" aria-label="Foto"></dialog>
+<dialog id="lightbox" class="lightbox" closedby="any" aria-label="Photo"></dialog>
 <div id="toast" class="toast hidden"></div>
 <input type="file" id="file-plan" accept="application/pdf,image/*" hidden>
 <input type="file" id="file-img" accept="image/*" multiple hidden>

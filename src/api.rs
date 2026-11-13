@@ -1,6 +1,6 @@
-//! JSON-API. Alles is klein genoeg om in één `GET /api/state` mee te sturen;
-//! wijzigingen gaan per entiteit en worden via server-sent events aan
-//! andere open vensters doorgegeven.
+//! JSON API. Everything is small enough to send in a single `GET /api/state`;
+//! changes go per entity and are pushed to other open windows via
+//! server-sent events.
 
 use std::convert::Infallible;
 
@@ -25,13 +25,13 @@ use crate::{
     media,
 };
 
-// ---------------------------------------------------------------- fouten
+// ---------------------------------------------------------------- errors
 
 pub struct ApiError(StatusCode, String);
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        eprintln!("fout {}: {}", self.0.as_u16(), self.1);
+        eprintln!("error {}: {}", self.0.as_u16(), self.1);
         (self.0, Json(json!({ "error": self.1 }))).into_response()
     }
 }
@@ -57,7 +57,7 @@ impl From<anyhow::Error> for ApiError {
 }
 
 fn not_found() -> ApiError {
-    ApiError(StatusCode::NOT_FOUND, "niet gevonden".into())
+    ApiError(StatusCode::NOT_FOUND, "not found".into())
 }
 
 type ApiResult<T> = Result<T, ApiError>;
@@ -137,13 +137,13 @@ pub async fn render_markdown(Json(r): Json<MdReq>) -> Json<Value> {
     Json(json!({ "html": markdown_html(&r.body) }))
 }
 
-// ---------------------------------------------------------------- generieke CRUD
+// ---------------------------------------------------------------- generic CRUD
 
-/// Neemt alleen toegestane velden uit `patch` over in `orig`.
+/// Copies only the allowed fields from `patch` into `orig`.
 fn merge<T: Entity>(orig: &T, patch: Value) -> ApiResult<T> {
     let mut v = serde_json::to_value(orig).unwrap();
     let Value::Object(p) = patch else {
-        return Err(ApiError(StatusCode::BAD_REQUEST, "verwacht een JSON-object".into()));
+        return Err(ApiError(StatusCode::BAD_REQUEST, "expected a JSON object".into()));
     };
     if let Value::Object(m) = &mut v {
         for (k, val) in p {
@@ -232,7 +232,7 @@ async fn read_files(mut mp: Multipart) -> ApiResult<Vec<Upload>> {
         if field.file_name().is_none() {
             continue;
         }
-        let name = field.file_name().unwrap_or("bestand").to_string();
+        let name = field.file_name().unwrap_or("file").to_string();
         let content_type = field.content_type().unwrap_or("").to_string();
         let bytes = field
             .bytes()
@@ -244,7 +244,7 @@ async fn read_files(mut mp: Multipart) -> ApiResult<Vec<Upload>> {
     Ok(out)
 }
 
-/// Upload van een plattegrond: PDF (elke pagina wordt een verdieping) of afbeelding.
+/// Floor plan upload: a PDF (every page becomes a floor) or an image.
 pub async fn upload_floor(
     State(s): State<AppState>,
     headers: HeaderMap,
@@ -264,7 +264,7 @@ pub async fn upload_floor(
         let stem = std::path::Path::new(&up.name)
             .file_stem()
             .and_then(|s| s.to_str())
-            .unwrap_or("Plattegrond")
+            .unwrap_or("Floor plan")
             .to_string();
         let pages = tokio::task::spawn_blocking(move || {
             if is_pdf {
@@ -279,7 +279,7 @@ pub async fn upload_floor(
         for (i, p) in pages.into_iter().enumerate() {
             created.push(Floor {
                 id: media::new_id(),
-                name: if multi { format!("{stem} – blad {}", i + 1) } else { stem.clone() },
+                name: if multi { format!("{stem} – sheet {}", i + 1) } else { stem.clone() },
                 image: p.file,
                 width: p.width as f64,
                 height: p.height as f64,
@@ -315,7 +315,7 @@ pub struct UrlReq {
     url: String,
 }
 
-/// Plaatje via een link: de server haalt het op en bewaart het lokaal.
+/// Image from a link: the server downloads it and stores it locally.
 pub async fn image_from_url(
     State(s): State<AppState>,
     Extension(user): Extension<User>,
@@ -363,7 +363,7 @@ async fn store_images(
                 height: p.height,
                 name,
                 source,
-                // Volgorde van uploaden behouden binnen dezelfde seconde.
+                // Keep upload order within the same second.
                 created: db::now() * 1000 + created.len() as i64,
             }),
             Err(e) => errors.push(format!("{name}: {e}")),
@@ -374,7 +374,7 @@ async fn store_images(
         for i in &created {
             db::save(&c, i)?;
         }
-        // Aantekening als bijgewerkt markeren.
+        // Mark the note as updated.
         if let Some(mut n) = db::get::<Note>(&c, &note_id)? {
             n.touch(&user.0, false);
             db::save(&c, &n)?;
@@ -387,17 +387,17 @@ async fn store_images(
     Ok(Json(created))
 }
 
-// ---------------------------------------------------------------- todo's
+// ---------------------------------------------------------------- todos
 
 #[derive(Deserialize)]
 pub struct TodoReq {
     line: usize,
     done: bool,
-    /// Ter controle: de tekst die de client op die regel verwacht.
+    /// For verification: the text the client expects on that line.
     text: Option<String>,
 }
 
-/// Een `#todo`-regel in een aantekening afstrepen (doorhalen) of weer openen.
+/// Check off (strike through) or reopen a `#todo` line in a note.
 pub async fn toggle_todo(
     State(s): State<AppState>,
     Extension(user): Extension<User>,
@@ -413,12 +413,12 @@ pub async fn toggle_todo(
             if current.as_ref().map(|t| &t.text) != Some(expected) {
                 return Err(ApiError(
                     StatusCode::CONFLICT,
-                    "deze todo is intussen gewijzigd — ververs de pagina".into(),
+                    "this todo has changed in the meantime — refresh the page".into(),
                 ));
             }
         }
         n.body = crate::todo::set_done(&n.body, r.line, r.done).ok_or_else(|| {
-            ApiError(StatusCode::CONFLICT, "deze todo is intussen gewijzigd — ververs de pagina".into())
+            ApiError(StatusCode::CONFLICT, "this todo has changed in the meantime — refresh the page".into())
         })?;
         n.touch(&user.0, false);
         db::save(&c, &n)?;

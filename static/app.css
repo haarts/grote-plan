@@ -114,7 +114,7 @@ button.icon {
 .empty p { color: var(--muted); margin: 0 0 16px; }
 .empty.drag .box { border-color: var(--acc); background: var(--acc-soft); }
 
-/* palette (elektra) */
+/* palette (electrical) */
 .palette {
   position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 5;
   display: flex; gap: 4px; padding: 6px; background: var(--paper); border-radius: 14px; box-shadow: var(--shadow);
@@ -137,7 +137,7 @@ button.icon {
 }
 .roombar .info { font-size: 13px; color: var(--muted); padding: 0 6px; }
 
-/* popover voor installatiepunten */
+/* popover for fixtures */
 .popover {
   position: absolute; z-index: 8; width: 280px; background: var(--paper); border-radius: 14px;
   box-shadow: 0 10px 40px rgba(0,0,0,.25); padding: 12px; display: grid; gap: 10px; font-size: 14px;
@@ -265,7 +265,7 @@ button.ghost { border: 0; background: transparent; }
 .empty-list { padding: 24px 16px; color: var(--muted); text-align: center; }
 .empty-list b { color: var(--ink2); }
 
-/* uitgeklapte aantekening */
+/* expanded note */
 .note-full .bar {
   position: sticky; top: 0; z-index: 3; background: var(--paper); border-bottom: 1px solid var(--line);
   display: flex; gap: 6px; padding: 10px 12px; align-items: center;
@@ -311,7 +311,7 @@ button.ghost { border: 0; background: transparent; }
 .drop-hint { border: 2px dashed var(--line2); border-radius: 10px; padding: 14px; text-align: center; color: var(--muted); font-size: 14px; }
 .drop-hint.on { border-color: var(--acc); background: var(--acc-soft); color: var(--acc); }
 
-/* overzicht */
+/* overview */
 table.ov { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 table.ov th, table.ov td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: right; }
 table.ov th:first-child, table.ov td:first-child { text-align: left; }
@@ -379,7 +379,7 @@ dialog::backdrop { overflow: hidden; overscroll-behavior: contain; }
 .toast button { margin-left: 10px; font: inherit; font-weight: 700; color: inherit; background: rgb(255 255 255 / .18); border: 0; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
 .toast button + button { margin-left: 4px; background: none; padding: 4px 6px; }
 
-/* ---------------------------------------------------------------- todo's */
+/* ---------------------------------------------------------------- todos */
 .todos { margin: 4px 16px 10px; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
 .todos.inroom { margin: 12px 0 0; padding: 10px 12px; background: var(--bg); border: 0; }
 .todo-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }

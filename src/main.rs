@@ -1,11 +1,11 @@
-//! Grote Plan — een gedeelde, interactieve plattegrond voor een renovatie.
+//! Grote Plan — a shared, interactive floor plan for a renovation.
 //!
-//! Eén binary: HTTP-server (axum) + SQLite-opslag + beeldverwerking.
-//! Gebruik:
-//!   grote-plan serve                 start de server (GP_ADDR, GP_DATA, GP_SECURE_COOKIE)
-//!   grote-plan user add <naam>       gebruiker toevoegen / wachtwoord wijzigen
-//!   grote-plan user list             gebruikers tonen
-//!   grote-plan user del <naam>       gebruiker verwijderen
+//! One binary: HTTP server (axum) + SQLite storage + image processing.
+//! Usage:
+//!   grote-plan serve                 start the server (GP_ADDR, GP_DATA, GP_SECURE_COOKIE)
+//!   grote-plan user add <name>       add a user / change a password
+//!   grote-plan user list             list users
+//!   grote-plan user del <name>       delete a user
 
 mod api;
 mod auth;
@@ -67,12 +67,12 @@ async fn main() -> anyhow::Result<()> {
         ["user", "del", name] => {
             let conn = db::open(&data_dir())?;
             db::delete_user(&conn, name)?;
-            println!("Gebruiker '{name}' verwijderd.");
+            println!("User '{name}' deleted.");
             Ok(())
         }
         _ => {
             eprintln!(
-                "Gebruik:\n  grote-plan serve\n  grote-plan user add <naam>\n  grote-plan user list\n  grote-plan user del <naam>\n\nOmgeving: GP_ADDR (0.0.0.0:8080), GP_DATA (./data), GP_SECURE_COOKIE=1 (achter https)"
+                "Usage:\n  grote-plan serve\n  grote-plan user add <name>\n  grote-plan user list\n  grote-plan user del <name>\n\nEnvironment: GP_ADDR (0.0.0.0:8080), GP_DATA (./data), GP_SECURE_COOKIE=1 (behind https)"
             );
             std::process::exit(2);
         }
@@ -84,18 +84,18 @@ fn user_add(name: &str) -> anyhow::Result<()> {
     let pw = if let Ok(pw) = std::env::var("GP_PASSWORD") {
         pw
     } else if std::io::stdin().is_terminal() {
-        let a = rpassword::prompt_password("Wachtwoord: ")?;
-        let b = rpassword::prompt_password("Herhaal:     ")?;
-        anyhow::ensure!(a == b, "wachtwoorden komen niet overeen");
+        let a = rpassword::prompt_password("Password: ")?;
+        let b = rpassword::prompt_password("Repeat:   ")?;
+        anyhow::ensure!(a == b, "passwords do not match");
         a
     } else {
         let mut s = String::new();
         std::io::stdin().read_to_string(&mut s)?;
         s.trim_end_matches(['\n', '\r']).to_string()
     };
-    anyhow::ensure!(pw.len() >= 6, "wachtwoord moet minstens 6 tekens zijn");
+    anyhow::ensure!(pw.len() >= 6, "password must be at least 6 characters");
     db::upsert_user(&conn, name, &auth::hash_password(&pw)?)?;
-    println!("Gebruiker '{name}' opgeslagen.");
+    println!("User '{name}' saved.");
     Ok(())
 }
 
@@ -106,7 +106,7 @@ async fn serve() -> anyhow::Result<()> {
     let conn = db::open(&data_dir)?;
     if db::list_users(&conn)?.is_empty() {
         eprintln!(
-            "⚠  Er zijn nog geen gebruikers. Maak er een aan met:  grote-plan user add <naam>"
+            "⚠  There are no users yet. Create one with:  grote-plan user add <name>"
         );
     }
     let (events, _) = tokio::sync::broadcast::channel(64);
@@ -171,13 +171,13 @@ async fn serve() -> anyhow::Result<()> {
 
     let addr = std::env::var("GP_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    println!("Grote Plan draait op http://{addr}  (data: {})", data_dir.display());
+    println!("Grote Plan running on http://{addr}  (data: {})", data_dir.display());
     axum::serve(listener, app).await?;
     Ok(())
 }
 
-/// Statische bestanden zitten in de binary. Met GP_STATIC_DIR worden ze tijdens
-/// ontwikkeling van schijf gelezen, zodat je niet hoeft te hercompileren.
+/// Static files are embedded in the binary. With GP_STATIC_DIR they are read from
+/// disk during development, so you don't have to recompile.
 async fn asset(name: &str, embedded: &'static str, ctype: &'static str) -> Response {
     let body = match std::env::var("GP_STATIC_DIR") {
         Ok(dir) => tokio::fs::read_to_string(PathBuf::from(dir).join(name))

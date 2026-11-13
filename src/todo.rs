@@ -1,14 +1,14 @@
-//! Todo's in aantekeningen: elke regel die eindigt op `#todo`.
-//! Afgestreept = de tekst staat tussen `~~ ~~` (doorgehaald in Markdown).
+//! Todos in notes: every line that ends with `#todo`.
+//! Done = the text is wrapped in `~~ ~~` (strikethrough in Markdown).
 //!
-//!   - Tegels bestellen #todo          → open
-//!   - ~~Tegels bestellen~~ #todo      → afgestreept
+//!   - Order tiles #todo          → open
+//!   - ~~Order tiles~~ #todo      → done
 
 use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Todo {
-    /// Regelnummer (0-based) in de Markdown-tekst.
+    /// Line number (0-based) in the Markdown text.
     pub line: usize,
     pub text: String,
     pub done: bool,
@@ -31,7 +31,7 @@ fn parse_line(line: &str) -> Option<Parsed<'_>> {
     if !tag.eq_ignore_ascii_case(TAG) || !(head.is_empty() || head.ends_with(char::is_whitespace)) {
         return None;
     }
-    // Voorvoegsel: inspringing, lijstteken en eventueel een takenlijst-vakje.
+    // Prefix: indentation, list marker and an optional task-list checkbox.
     let bytes = head.as_bytes();
     let mut i = 0;
     while i < bytes.len() && (bytes[i] == b' ' || bytes[i] == b'\t') {
@@ -62,7 +62,7 @@ fn parse_line(line: &str) -> Option<Parsed<'_>> {
     Some(Parsed { prefix: &head[..i], text, done })
 }
 
-/// Alle todo's in een tekst (code-blokken worden overgeslagen).
+/// All todos in a text (code blocks are skipped).
 pub fn extract(body: &str) -> Vec<Todo> {
     let mut out = Vec::new();
     let mut in_code = false;
@@ -81,15 +81,15 @@ pub fn extract(body: &str) -> Vec<Todo> {
     out
 }
 
-/// Zet todo op regel `line` op afgestreept of open. Geeft de nieuwe tekst terug,
-/// of `None` als op die regel geen todo staat.
+/// Marks the todo on line `line` as done or open. Returns the new text,
+/// or `None` if there is no todo on that line.
 pub fn set_done(body: &str, line: usize, done: bool) -> Option<String> {
     let lines: Vec<&str> = body.split('\n').collect();
     let raw = *lines.get(line)?;
     let cr = raw.ends_with('\r');
     let p = parse_line(raw.trim_end_matches('\r'))?;
     let mut prefix = p.prefix.to_string();
-    // Takenlijst-vakje meebewegen, als dat er staat.
+    // Keep the task-list checkbox in sync, if there is one.
     if done {
         prefix = prefix.replacen("[ ] ", "[x] ", 1);
     } else {
@@ -107,26 +107,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn vindt_todos() {
-        let md = "# Keuken\n- Tegels bestellen #todo\n- ~~Offerte~~ #todo\nGeen todo#todo\n```\nx #todo\n```\n1. Kraan kiezen #TODO  \n#todo";
+    fn finds_todos() {
+        let md = "# Kitchen\n- Order tiles #todo\n- ~~Quote~~ #todo\nNot a todo#todo\n```\nx #todo\n```\n1. Pick a tap #TODO  \n#todo";
         let t = extract(md);
         assert_eq!(
             t,
             vec![
-                Todo { line: 1, text: "Tegels bestellen".into(), done: false },
-                Todo { line: 2, text: "Offerte".into(), done: true },
-                Todo { line: 7, text: "Kraan kiezen".into(), done: false },
+                Todo { line: 1, text: "Order tiles".into(), done: false },
+                Todo { line: 2, text: "Quote".into(), done: true },
+                Todo { line: 7, text: "Pick a tap".into(), done: false },
             ]
         );
     }
 
     #[test]
-    fn afstrepen_en_terug() {
-        let md = "intro\n  - [ ] Tegels bestellen #todo\nslot";
+    fn check_and_uncheck() {
+        let md = "intro\n  - [ ] Order tiles #todo\nend";
         let done = set_done(md, 1, true).unwrap();
-        assert_eq!(done, "intro\n  - [x] ~~Tegels bestellen~~ #todo\nslot");
+        assert_eq!(done, "intro\n  - [x] ~~Order tiles~~ #todo\nend");
         let open = set_done(&done, 1, false).unwrap();
-        assert_eq!(open, "intro\n  - [ ] Tegels bestellen #todo\nslot");
+        assert_eq!(open, "intro\n  - [ ] Order tiles #todo\nend");
         assert!(set_done(md, 0, true).is_none());
     }
 }

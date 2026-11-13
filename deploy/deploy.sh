@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Bouwt lokaal en zet Grote Plan op de server in een Docker-container.
-#   deploy/deploy.sh                 alleen code bijwerken (data op de server blijft)
-#   deploy/deploy.sh --with-data     ook ./data meesturen (overschrijft de server-data!)
+# Builds locally and runs Grote Plan on the server in a Docker container.
+#   deploy/deploy.sh                 update the code only (data on the server is kept)
+#   deploy/deploy.sh --with-data     also send ./data (overwrites the server data!)
 set -euo pipefail
 HOST=${GP_HOST:-racknerd}
 PORT=${GP_PORT:-8090}
@@ -23,5 +23,5 @@ docker run -d --name grote-plan --restart unless-stopped \
   --user "\$(id -u):\$(id -g)" \
   -p 127.0.0.1:$PORT:8080 -v "\$PWD/data:/data" grote-plan >/dev/null
 sleep 1
-curl -fsS -o /dev/null -w "grote-plan draait (login: %{http_code})\n" http://127.0.0.1:$PORT/login
+curl -fsS -o /dev/null -w "grote-plan running (login: %{http_code})\n" http://127.0.0.1:$PORT/login
 REMOTE

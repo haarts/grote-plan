@@ -1,10 +1,10 @@
-//! Plaatjes ophalen via een URL. De server downloadt het bestand en bewaart het
-//! lokaal, net als een upload.
+//! Fetching images from a URL. The server downloads the file and stores it
+//! locally, just like an upload.
 //!
-//! Omdat de server zelf het verzoek doet, mag een URL nooit naar het eigen netwerk
-//! wijzen (localhost, 10.x, 192.168.x, …). Elke stap — ook na een redirect — wordt
-//! daarom eerst zelf opgezocht en gecontroleerd, en de verbinding wordt vastgepind
-//! op precies dat gecontroleerde adres (geen tweede DNS-lookup door de client).
+//! Because the server makes the request itself, a URL must never point at the
+//! local network (localhost, 10.x, 192.168.x, …). Every hop — also after a redirect —
+//! is therefore resolved and checked first, and the connection is pinned to exactly
+//! that checked address (no second DNS lookup by the client).
 
 use std::{
     net::{IpAddr, SocketAddr},
@@ -20,16 +20,16 @@ const USER_AGENT: &str = "Mozilla/5.0 (compatible; GrotePlan/1.0; +renovatie-pla
 
 pub struct Fetched {
     pub bytes: Vec<u8>,
-    /// Bestandsnaam afgeleid uit de URL.
+    /// File name derived from the URL.
     pub name: String,
-    /// De URL waar het plaatje uiteindelijk vandaan kwam.
+    /// The URL the image was finally fetched from.
     pub url: String,
 }
 
-/// Haalt een plaatje op. Is de URL een webpagina, dan wordt de voorbeeldafbeelding
-/// (`og:image` / `twitter:image`) van die pagina genomen.
+/// Fetches an image. If the URL is a web page, that page's preview image
+/// (`og:image` / `twitter:image`) is used.
 pub async fn image(raw: &str) -> anyhow::Result<Fetched> {
-    let url = Url::parse(raw.trim()).context("dat is geen geldige link")?;
+    let url = Url::parse(raw.trim()).context("that is not a valid link")?;
     let (bytes, ctype, url) = get(url).await?;
     let (bytes, url) = if is_html(&ctype, &bytes) {
         if is_pinterest(&url) && !url.path().starts_with("/pin/") {
@@ -37,17 +37,17 @@ pub async fn image(raw: &str) -> anyhow::Result<Fetched> {
         }
         let page = String::from_utf8_lossy(&bytes);
         let img = preview_image(&page).context(
-            "deze link is een webpagina zonder voorbeeldafbeelding — gebruik de link van het plaatje zelf \
-             (rechtsklik op het plaatje → afbeeldingsadres kopiëren)",
+            "this link is a web page without a preview image — use the link of the image itself \
+             (right-click the image → copy image address)",
         )?;
-        let img_url = url.join(&img).context("ongeldige afbeeldingslink op de pagina")?;
-        // Het algemene deelplaatje (logo) van Pinterest is nooit wat je bedoelt.
+        let img_url = url.join(&img).context("invalid image link on the page")?;
+        // Pinterest's generic share image (logo) is never what you want.
         if is_pinterest(&url) && img_url.host_str() != Some("i.pinimg.com") {
             bail!("{PINTEREST_HINT}");
         }
         let (bytes, ctype, url) = get(img_url).await?;
         if is_html(&ctype, &bytes) {
-            bail!("de voorbeeldafbeelding van de pagina is geen plaatje");
+            bail!("the page's preview image is not an image");
         }
         (bytes, url)
     } else {
@@ -57,11 +57,11 @@ pub async fn image(raw: &str) -> anyhow::Result<Fetched> {
         .path_segments()
         .and_then(|mut s| s.next_back().map(str::to_string))
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "afbeelding".into());
+        .unwrap_or_else(|| "image".into());
     Ok(Fetched { bytes, name, url: url.to_string() })
 }
 
-/// GET met handmatige redirects; elke hop wordt opnieuw gecontroleerd.
+/// GET with manual redirects; every hop is checked again.
 async fn get(mut url: Url) -> anyhow::Result<(Vec<u8>, String, Url)> {
     for _ in 0..=MAX_REDIRECTS {
         let addrs = public_addrs(&url).await?;
@@ -78,21 +78,21 @@ async fn get(mut url: Url) -> anyhow::Result<(Vec<u8>, String, Url)> {
             .header("accept", "image/avif,image/webp,image/*,text/html;q=0.8,*/*;q=0.5")
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ophalen mislukt: {}", short(&e)))?;
+            .map_err(|e| anyhow::anyhow!("download failed: {}", short(&e)))?;
         if resp.status().is_redirection() {
             let loc = resp
                 .headers()
                 .get("location")
                 .and_then(|v| v.to_str().ok())
-                .context("redirect zonder adres")?;
-            url = url.join(loc).context("ongeldige redirect")?;
+                .context("redirect without a location")?;
+            url = url.join(loc).context("invalid redirect")?;
             continue;
         }
         if !resp.status().is_success() {
-            bail!("de site gaf {} terug", resp.status());
+            bail!("the site returned {}", resp.status());
         }
         if resp.content_length().is_some_and(|n| n as usize > MAX_BYTES) {
-            bail!("bestand is groter dan {} MB", MAX_BYTES / 1024 / 1024);
+            bail!("file is larger than {} MB", MAX_BYTES / 1024 / 1024);
         }
         let ctype = resp
             .headers()
@@ -102,21 +102,21 @@ async fn get(mut url: Url) -> anyhow::Result<(Vec<u8>, String, Url)> {
             .to_ascii_lowercase();
         let mut bytes = Vec::new();
         while let Some(chunk) =
-            resp.chunk().await.map_err(|e| anyhow::anyhow!("ophalen mislukt: {}", short(&e)))?
+            resp.chunk().await.map_err(|e| anyhow::anyhow!("download failed: {}", short(&e)))?
         {
             bytes.extend_from_slice(&chunk);
             if bytes.len() > MAX_BYTES {
-                bail!("bestand is groter dan {} MB", MAX_BYTES / 1024 / 1024);
+                bail!("file is larger than {} MB", MAX_BYTES / 1024 / 1024);
             }
         }
         return Ok((bytes, ctype, url));
     }
-    bail!("te veel redirects")
+    bail!("too many redirects")
 }
 
-const PINTEREST_HINT: &str = "Pinterest geeft het plaatje van deze pin niet vrij aan andere sites. \
-    Open de pin in de browser, houd het plaatje ingedrukt en kies 'Afbeeldingslink kopiëren' \
-    (een link naar i.pinimg.com) — of sla het plaatje op en kies 📷 Foto's.";
+const PINTEREST_HINT: &str = "Pinterest doesn't release the image of this pin to other sites. \
+    Open the pin in the browser, long-press the image and choose 'Copy image link' \
+    (a link to i.pinimg.com) — or save the image and use 📷 Photos.";
 
 fn is_pinterest(url: &Url) -> bool {
     url.host_str().is_some_and(|h| {
@@ -127,32 +127,32 @@ fn is_pinterest(url: &Url) -> bool {
 
 fn short(e: &reqwest::Error) -> String {
     if e.is_timeout() {
-        "de site reageert niet".into()
+        "the site is not responding".into()
     } else if e.is_connect() {
-        "kan geen verbinding maken".into()
+        "cannot connect".into()
     } else {
         e.to_string()
     }
 }
 
-/// Zoekt de host op; alleen als álle adressen publiek zijn komen ze terug,
-/// IPv4 eerst (een Docker-netwerk heeft vaak geen IPv6).
+/// Resolves the host; addresses are returned only if all of them are public,
+/// IPv4 first (a Docker network often has no IPv6).
 async fn public_addrs(url: &Url) -> anyhow::Result<Vec<SocketAddr>> {
     if !matches!(url.scheme(), "http" | "https") {
-        bail!("alleen http- en https-links worden ondersteund");
+        bail!("only http and https links are supported");
     }
-    let host = url.host_str().context("link zonder host")?;
+    let host = url.host_str().context("link without a host")?;
     let port = url.port_or_known_default().unwrap_or(443);
     let host_for_lookup = host.trim_start_matches('[').trim_end_matches(']');
     let mut addrs: Vec<SocketAddr> = tokio::net::lookup_host((host_for_lookup, port))
         .await
-        .with_context(|| format!("host '{host}' niet gevonden"))?
+        .with_context(|| format!("host '{host}' not found"))?
         .collect();
     if addrs.is_empty() {
-        bail!("host '{host}' niet gevonden");
+        bail!("host '{host}' not found");
     }
     if let Some(bad) = addrs.iter().find(|a| !is_public(a.ip())) {
-        bail!("links naar het eigen of een lokaal netwerk zijn niet toegestaan ({})", bad.ip());
+        bail!("links to the own or a local network are not allowed ({})", bad.ip());
     }
     addrs.sort_by_key(|a| a.is_ipv6());
     Ok(addrs)
@@ -199,7 +199,7 @@ fn is_html(ctype: &str, bytes: &[u8]) -> bool {
     head.trim_start().starts_with("<!doctype html") || head.contains("<html")
 }
 
-/// Voorbeeldafbeelding uit de `<meta>`-tags van een pagina.
+/// Preview image from a page's `<meta>` tags.
 fn preview_image(html: &str) -> Option<String> {
     const KEYS: [&str; 5] =
         ["og:image:secure_url", "og:image:url", "og:image", "twitter:image", "twitter:image:src"];
@@ -220,7 +220,7 @@ fn preview_image(html: &str) -> Option<String> {
         }
         pos = end;
     }
-    // og:image boven twitter:image; bij gelijke soort de eerste op de pagina.
+    // og:image over twitter:image; for the same kind, the first on the page.
     found.sort_by_key(|(rank, _)| if *rank <= 2 { 0 } else { 1 });
     found.into_iter().map(|(_, u)| u).next()
 }
@@ -231,7 +231,7 @@ fn attr(tag: &str, name: &str) -> Option<String> {
     while let Some(i) = lower[from..].find(name) {
         let at = from + i;
         from = at + name.len();
-        // Moet een los attribuut zijn: ervoor witruimte, erna (spaties) '='.
+        // Must be a standalone attribute: whitespace before, (spaces) '=' after.
         if at == 0 || !lower.as_bytes()[at - 1].is_ascii_whitespace() {
             continue;
         }
@@ -256,18 +256,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn privé_adressen_geweigerd() {
+    fn private_addresses_refused() {
         for ip in ["127.0.0.1", "10.1.2.3", "192.168.1.10", "172.16.0.1", "169.254.169.254", "100.64.0.1",
                    "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:127.0.0.1"] {
-            assert!(!is_public(ip.parse().unwrap()), "{ip} zou geweigerd moeten worden");
+            assert!(!is_public(ip.parse().unwrap()), "{ip} should be refused");
         }
         for ip in ["93.184.216.34", "2606:4700::1111", "8.8.8.8"] {
-            assert!(is_public(ip.parse().unwrap()), "{ip} is publiek");
+            assert!(is_public(ip.parse().unwrap()), "{ip} is public");
         }
     }
 
     #[test]
-    fn voorbeeldafbeelding_uit_pagina() {
+    fn preview_image_from_page() {
         let html = r#"<html><head>
             <meta name="twitter:image" content="https://x.test/tw.jpg">
             <META content='https://x.test/a.jpg?w=1&amp;h=2' property='og:image' />
@@ -277,26 +277,26 @@ mod tests {
     }
 
     #[test]
-    fn pinterest_herkend() {
+    fn pinterest_detected() {
         for u in ["https://www.pinterest.com/?show_error=true", "https://nl.pinterest.com/pin/1/", "https://pinterest.nl/x"] {
             assert!(is_pinterest(&Url::parse(u).unwrap()), "{u}");
         }
         assert!(!is_pinterest(&Url::parse("https://i.pinimg.com/originals/a.jpg").unwrap()));
     }
 
-    /// Online: `cargo test pinterest_deellink -- --ignored`
+    /// Online: `cargo test pinterest_share_link -- --ignored`
     #[tokio::test]
     #[ignore]
-    async fn pinterest_deellink() {
-        let e = image("https://pin.it/6Oe2dlws9").await.err().expect("moet een melding geven").to_string();
+    async fn pinterest_share_link() {
+        let e = image("https://pin.it/6Oe2dlws9").await.err().expect("should return an error").to_string();
         assert!(e.contains("Pinterest"), "{e}");
     }
 
     #[tokio::test]
-    async fn lokale_links_geweigerd() {
+    async fn local_links_refused() {
         for u in ["http://127.0.0.1:8080/", "http://localhost/x.png", "file:///etc/passwd", "http://[::1]/"] {
             let e = image(u).await.err().expect(u).to_string();
-            assert!(e.contains("niet toegestaan") || e.contains("alleen http"), "{u}: {e}");
+            assert!(e.contains("not allowed") || e.contains("only http"), "{u}: {e}");
         }
     }
 }
