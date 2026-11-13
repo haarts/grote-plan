@@ -1,0 +1,11 @@
+services:
+  grote-plan:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      # Zet op 1 zodra de site via https (reverse proxy) bereikbaar is.
+      GP_SECURE_COOKIE: "0"

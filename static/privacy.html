@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy – Grote Plan</title>
+<link rel="icon" href="/icon.svg">
+<style>
+  :root { color-scheme: light dark; --bg: #f4f1ea; --ink: #23211d; --muted: #6b665c; --accent: #c4572e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1b1a17; --ink: #ece8df; --muted: #a29d92; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  header img { width: 40px; height: 40px; }
+  h1 { font-size: 26px; margin: 0; }
+  h2 { font-size: 18px; margin: 32px 0 6px; }
+  .meta { color: var(--muted); font-size: 14px; }
+  hr { border: 0; border-top: 1px solid color-mix(in srgb, var(--ink) 15%, transparent); margin: 48px 0; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="/icon.svg" alt=""><h1>Privacy</h1></header>
+  <p class="meta">Grote Plan · laatst bijgewerkt 12 november 2026 · <a href="#en">English below</a></p>
+
+  <p>Grote Plan is een privé-webapp waarin een huishouden van twee personen plattegronden, aantekeningen en foto's voor de eigen verbouwing bewaart. De app is niet openbaar: alleen wie een account heeft gekregen van de beheerder kan inloggen. Er is geen registratie, geen reclame en er worden geen gegevens verkocht of gedeeld.</p>
+
+  <h2>Welke gegevens</h2>
+  <ul>
+    <li><strong>Account:</strong> een gebruikersnaam en een versleuteld (gehasht) wachtwoord, plus een sessiecookie om ingelogd te blijven. Er worden geen tracking- of analysecookies gebruikt.</li>
+    <li><strong>Inhoud:</strong> plattegronden, aantekeningen en afbeeldingen die gebruikers zelf toevoegen.</li>
+    <li><strong>Pinterest:</strong> als een gebruiker zijn Pinterest-account koppelt, bewaart de app het toegangstoken dat Pinterest daarvoor geeft. Daarmee wordt alleen op verzoek van de gebruiker de afbeelding van een pin opgehaald die hij zelf in de app plakt. Er wordt niets op Pinterest geplaatst of gewijzigd, en de app leest geen borden, volgers of andere gegevens.</li>
+  </ul>
+
+  <h2>Opslag en bewaartermijn</h2>
+  <p>Alles staat op één eigen server in een database en een map met bestanden. Gegevens blijven bewaard tot de gebruiker ze verwijdert. Een Pinterest-koppeling kan op elk moment worden verbroken in de app of via de instellingen van Pinterest; het token wordt dan verwijderd.</p>
+
+  <h2>Derden</h2>
+  <p>Er gaan geen gegevens naar derden. Alleen bij het ophalen van een plaatje via een link (bijvoorbeeld van Pinterest of een webshop) doet de server een verzoek aan die website.</p>
+
+  <h2>Contact</h2>
+  <p>Vragen of een verzoek om gegevens in te zien of te verwijderen: neem contact op met de beheerder van deze site.</p>
+
+  <hr>
+
+  <h1 id="en" lang="en">Privacy policy</h1>
+  <div lang="en">
+  <p class="meta">Grote Plan · last updated 12 November 2026</p>
+
+  <p>Grote Plan is a private web app in which a two-person household keeps floor plans, notes and photos for their own home renovation. It is not a public service: only people who were given an account by the administrator can sign in. There is no sign-up, no advertising, and no data is sold or shared.</p>
+
+  <h2>What data</h2>
+  <ul>
+    <li><strong>Account:</strong> a username and a hashed password, plus a session cookie to keep you signed in. No tracking or analytics cookies are used.</li>
+    <li><strong>Content:</strong> floor plans, notes and images that users add themselves.</li>
+    <li><strong>Pinterest:</strong> when a user connects their Pinterest account, the app stores the access token Pinterest issues. It is used only to fetch, at the user's request, the image of a Pin whose link the user pastes into the app. The app does not post or modify anything on Pinterest and does not read boards, followers or other data.</li>
+  </ul>
+
+  <h2>Storage and retention</h2>
+  <p>All data is stored on a single privately operated server. It is kept until the user deletes it. A Pinterest connection can be revoked at any time in the app or in Pinterest's settings; the token is then deleted.</p>
+
+  <h2>Third parties</h2>
+  <p>No data is shared with third parties. Only when an image is fetched from a link (for example from Pinterest or a web shop) does the server make a request to that website.</p>
+
+  <h2>Contact</h2>
+  <p>For questions, or to request access to or deletion of your data, contact the administrator of this site.</p>
+  </div>
+</main>
+</body>
+</html>
