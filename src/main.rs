@@ -152,6 +152,7 @@ async fn serve() -> anyhow::Result<()> {
         .route("/login", get(auth::login_page).post(auth::login))
         .route("/logout", post(auth::logout))
         .route("/app.js", get(|| asset("app.js", include_str!("../static/app.js"), "text/javascript; charset=utf-8")))
+        .route("/i18n.js", get(|| asset("i18n.js", include_str!("../static/i18n.js"), "text/javascript; charset=utf-8")))
         .route("/app.css", get(|| asset("app.css", include_str!("../static/app.css"), "text/css; charset=utf-8")))
         .route("/icon.svg", get(|| asset("icon.svg", include_str!("../static/icon.svg"), "image/svg+xml")))
         .route("/privacy", get(|| asset("privacy.html", include_str!("../static/privacy.html"), "text/html; charset=utf-8")))

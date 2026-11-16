@@ -20,6 +20,8 @@ A shared, interactive floor plan for our renovation. You attach photos and notes
 | Todos | Put `#todo` at the end of a line in a note. They appear at the top of **All**. Checking one off strikes the line through in the note (`~~text~~ #todo`). Every room also has fixed todos: floor, walls, ceiling and electrical. |
 | Photos | **📷 Photos**, drag and drop, or paste with Ctrl+V. A downscaled version and a thumbnail are created, and the original is kept. Uploads are read into memory first and retried on a connection error; a failed upload offers **Retry**. |
 | Images from a link | **🔗 Link**, paste a link (outside a text field), or drag an image from another website onto the panel. The server downloads it and stores it locally; the source is shown in the photo viewer. A link to a web page (e.g. a web shop) yields that page's preview image. Links to the own or a local network are refused. Pinterest share links don't work: Pinterest only shows pins to logged-in users. |
+| Language | English and Dutch. The **NL**/**EN** button in the top bar switches; without a choice the browser language decides. Texts live in `static/i18n.js` (English is the key). |
+| Phone layout | Map on top, panel below. Drag the grip at the bottom of the map to divide the screen; the zoom level stays as it is. |
 
 Shortcuts: `Esc` cancels, `Enter` closes a room, `Delete` removes the selected point or symbol, `+`/`-`/`0` zoom, and `Ctrl+S` saves a note.
 
@@ -73,5 +75,5 @@ src/auth.rs   login/sessions (argon2)
 src/fetch.rs  images from a URL, with protection against requests to the local network
 src/media.rs  PDF → PNG (pdftoppm), photo downscaling
 src/todo.rs   finding and checking off #todo lines (with tests)
-static/       index.html, app.css, app.js, privacy.html
+static/       index.html, app.css, app.js, i18n.js (translations), privacy.html
 ```

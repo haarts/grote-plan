@@ -87,6 +87,7 @@ async function api(method, url, body) {
   if (!r.ok) {
     let m = r.statusText;
     try { m = (await r.json()).error || m; } catch {}
+    m = trErr(m);
     toast(m, true);
     throw new Error(m);
   }
@@ -177,25 +178,25 @@ function toast(msg, err = false, act = null) {
     b.textContent = act.label;
     b.onclick = () => { t.classList.add('hidden'); act.fn(); };
     const x = document.createElement('button');
-    x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
+    x.textContent = '✕'; x.setAttribute('aria-label', tr('Close'));
     x.onclick = () => t.classList.add('hidden');
     t.append(b, x);
     return;
   }
   toast.t = setTimeout(() => t.classList.add('hidden'), err ? Math.max(5000, msg.length * 70) : 2600);
 }
-const nf = (v, d = 2) => v.toLocaleString('en-GB', { minimumFractionDigits: d, maximumFractionDigits: d });
+const nf = (v, d = 2) => v.toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d });
 const fmtM = m => nf(m, 2) + ' m';
 const fmtA = a => nf(a, 1) + ' m²';
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+const rtf = new Intl.RelativeTimeFormat(LANG, { numeric: 'auto' });
 function ago(ts) {
   const s = (ts > 1e11 ? ts / 1000 : ts) - Date.now() / 1000;
   const a = Math.abs(s);
-  if (a < 60) return 'just now';
+  if (a < 60) return tr('just now');
   if (a < 3600) return rtf.format(Math.round(s / 60), 'minute');
   if (a < 86400) return rtf.format(Math.round(s / 3600), 'hour');
   if (a < 86400 * 30) return rtf.format(Math.round(s / 86400), 'day');
-  return new Date(ts * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(ts * 1000).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 const floor = () => idx.floor.get(U.floorId);
 const floorRooms = (fid = U.floorId) => D.rooms.filter(r => r.floor_id === fid);
@@ -313,9 +314,9 @@ function renderMap() {
   const plan = $('#plan');
   $('#empty').classList.toggle('hidden', !!f);
   if (!f) {
-    $('#empty').innerHTML = `<div class="box"><h2>Start with the floor plan</h2>
-      <p>Upload the architect's PDF. Every page becomes a floor. Then set the scale and trace the rooms.</p>
-      <button class="btn pri" data-act="upload-plan">Choose a PDF or image</button></div>`;
+    $('#empty').innerHTML = `<div class="box"><h2>${tr('Start with the floor plan')}</h2>
+      <p>${tr("Upload the architect's PDF. Every page becomes a floor. Then set the scale and trace the rooms.")}</p>
+      <button class="btn pri" data-act="upload-plan">${tr('Choose a PDF or image')}</button></div>`;
     plan.removeAttribute('href');
     ['#g-rooms', '#g-dims', '#g-links', '#g-markers', '#g-draft'].forEach(s => $(s).innerHTML = '');
     renderMapChrome();
@@ -497,14 +498,14 @@ function renderMapChrome() {
 
   // Hint
   let hint = '';
-  if (U.placeNote) hint = `Tap the floor plan to place the note <button class="alt" data-act="cancel">Cancel</button>`;
-  else if (U.zonePick) hint = `Tap rooms to add them to or remove them from “${esc(idx.zone.get(U.zonePick)?.name)}” <button data-act="zonepick-done">Done</button>`;
-  else if (U.linking) hint = `Tap the light points this switch controls <button data-act="link-done">Done</button>`;
-  else if (U.mode === 'scale') hint = U.calib?.length === 1 ? 'Tap the second point' : `Tap two points with a known distance (e.g. a dimension line)${f?.m_per_px ? ` · now: 1 m = ${Math.round(1 / f.m_per_px)} px` : ''}`;
-  else if (U.mode === 'rooms' && U.draw) hint = U.draw.length < 3 ? 'Tap the corners of the room (inside of the walls). Right angles are aligned automatically.' : 'Tap the first point or “Done” to close';
+  if (U.placeNote) hint = `${tr('Tap the floor plan to place the note')} <button class="alt" data-act="cancel">${tr('Cancel')}</button>`;
+  else if (U.zonePick) hint = `${tr('Tap rooms to add them to or remove them from “{zone}”', { zone: esc(idx.zone.get(U.zonePick)?.name) })} <button data-act="zonepick-done">${tr('Done')}</button>`;
+  else if (U.linking) hint = `${tr('Tap the light points this switch controls')} <button data-act="link-done">${tr('Done')}</button>`;
+  else if (U.mode === 'scale') hint = U.calib?.length === 1 ? tr('Tap the second point') : tr('Tap two points with a known distance (e.g. a dimension line)') + (f?.m_per_px ? ` · ${tr('now')}: 1 m = ${Math.round(1 / f.m_per_px)} px` : '');
+  else if (U.mode === 'rooms' && U.draw) hint = U.draw.length < 3 ? tr('Tap the corners of the room (inside of the walls). Right angles are aligned automatically.') : tr('Tap the first point or “Done” to close');
   else if (U.mode === 'measure') hint = measureHint(f);
-  else if (U.mode === 'install' && !U.tool && !U.selMk) hint = 'Pick a symbol and tap the floor plan. Wall fixtures snap to the wall.';
-  else if (f && !f.m_per_px && U.mode === 'view') hint = `Scale not set yet — dimensions and areas are missing <button data-act="mode" data-mode="scale">Set scale</button>`;
+  else if (U.mode === 'install' && !U.tool && !U.selMk) hint = tr('Pick a symbol and tap the floor plan. Wall fixtures snap to the wall.');
+  else if (f && !f.m_per_px && U.mode === 'view') hint = `${tr('Scale not set yet — dimensions and areas are missing')} <button data-act="mode" data-mode="scale">${tr('Set scale')}</button>`;
   $('#hint').innerHTML = hint;
   $('#hint').classList.toggle('hidden', !hint || !f);
 
@@ -513,7 +514,7 @@ function renderMapChrome() {
   pal.classList.toggle('hidden', U.mode !== 'install' || !f || !!U.selMk);
   if (U.mode === 'install') {
     pal.innerHTML = FX_GROUPS.map(([g]) => `<div class="grp">${Object.entries(FX).filter(([, d]) => d.grp === g).map(([k, d]) =>
-      `<button data-tool="${k}" class="${U.tool === k ? 'on' : ''}" title="${esc(d.name)}">${fxIconSvg(k)}<span>${esc(d.short)}</span></button>`).join('')}</div>`).join('');
+      `<button data-tool="${k}" class="${U.tool === k ? 'on' : ''}" title="${esc(tr(d.name))}">${fxIconSvg(k)}<span>${esc(tr(d.short))}</span></button>`).join('')}</div>`).join('');
   }
 
   // Room bar
@@ -521,19 +522,19 @@ function renderMapChrome() {
   rb.classList.toggle('hidden', U.mode !== 'rooms' || !f);
   if (U.mode === 'rooms') {
     if (U.draw) {
-      rb.innerHTML = `<span class="info">${U.draw.length} points</span>
-        <button class="btn small" data-act="draw-undo" ${U.draw.length ? '' : 'disabled'}>↶ Undo</button>
-        <button class="btn small pri" data-act="draw-done" ${U.draw.length > 2 ? '' : 'disabled'}>Done</button>
-        <button class="btn small" data-act="cancel">Cancel</button>`;
+      rb.innerHTML = `<span class="info">${trn(U.draw.length, '{n} point', '{n} points')}</span>
+        <button class="btn small" data-act="draw-undo" ${U.draw.length ? '' : 'disabled'}>↶ ${tr('Undo')}</button>
+        <button class="btn small pri" data-act="draw-done" ${U.draw.length > 2 ? '' : 'disabled'}>${tr('Done')}</button>
+        <button class="btn small" data-act="cancel">${tr('Cancel')}</button>`;
     } else if (U.editRoom) {
       const r = idx.room.get(U.editRoom);
-      rb.innerHTML = `<span class="info"><b>${esc(r?.name)}</b> · drag the points, tap a dimension to enter it exactly</span>
-        ${U.selVtx != null ? '<button class="btn small" data-act="vtx-del">Delete point</button>' : ''}
-        <button class="btn small" data-act="room-edit">Name/colour</button>
-        <button class="btn small danger" data-act="room-del">Delete</button>
-        <button class="btn small" data-act="room-done">Done</button>`;
+      rb.innerHTML = `<span class="info"><b>${esc(r?.name)}</b> · ${tr('drag the points, tap a dimension to enter it exactly')}</span>
+        ${U.selVtx != null ? `<button class="btn small" data-act="vtx-del">${tr('Delete point')}</button>` : ''}
+        <button class="btn small" data-act="room-edit">${tr('Name/colour')}</button>
+        <button class="btn small danger" data-act="room-del">${tr('Delete')}</button>
+        <button class="btn small" data-act="room-done">${tr('Done')}</button>`;
     } else {
-      rb.innerHTML = `<button class="btn small pri" data-act="draw-start">+ New room</button><span class="info">or tap a room to edit it</span>`;
+      rb.innerHTML = `<button class="btn small pri" data-act="draw-start">+ ${tr('New room')}</button><span class="info">${tr('or tap a room to edit it')}</span>`;
     }
   }
   renderFloors();
@@ -542,7 +543,7 @@ function renderMapChrome() {
 function renderFloors() {
   $('#floors').innerHTML = D.floors.map(f =>
     `<button data-floor="${f.id}" class="${f.id === U.floorId ? 'on' : ''}">${esc(f.name)}${f.id === U.floorId ? '<span class="more" data-act="floor-menu">⋯</span>' : ''}</button>`).join('')
-    + `<button class="add" data-act="upload-plan" title="Add floor plan">+</button>`;
+    + `<button class="add" data-act="upload-plan" title="${tr('Add floor plan')}">+</button>`;
   $('#me').textContent = D.me;
 }
 
@@ -554,7 +555,7 @@ function renderPopover() {
   const d = FX[m.kind];
   const room = markerRoom(m);
   const s = floor()?.m_per_px;
-  let where = room ? esc(room.name) : 'Outside any room';
+  let where = room ? esc(room.name) : tr('Outside any room');
   if (s && room) {
     const info = positionInfo(m, room, s);
     if (info) where += ` · ${info}`;
@@ -562,26 +563,26 @@ function renderPopover() {
   let extra = '';
   if (SWITCHES.includes(m.kind)) {
     const n = (m.controls || []).filter(id => idx.marker.has(id)).length;
-    extra = `<div class="row"><span class="note" style="flex:1">Controls ${n} light point${n === 1 ? '' : 's'}</span><button class="btn small" data-act="link-start">Link light points</button></div>`;
+    extra = `<div class="row"><span class="note" style="flex:1">${trn(n, 'Controls {n} light point', 'Controls {n} light points')}</span><button class="btn small" data-act="link-start">${tr('Link light points')}</button></div>`;
   } else if (LIGHTS.includes(m.kind)) {
     const by = D.markers.filter(s => s.controls?.includes(m.id));
-    extra = `<div class="note">${by.length ? 'Switched by: ' + by.map(s => esc(s.label || FX[s.kind].name)).join(', ') : 'Not linked to a switch yet'}</div>`;
+    extra = `<div class="note">${by.length ? tr('Switched by:') + ' ' + by.map(s => esc(s.label || tr(FX[s.kind].name))).join(', ') : tr('Not linked to a switch yet')}</div>`;
   }
   const hs = HEIGHTS[d.grp] || [];
   po.innerHTML = `
     <div class="head">${fxIconSvg(m.kind, 34)}
-      <select data-f="kind">${Object.entries(FX).map(([k, v]) => `<option value="${k}" ${k === m.kind ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select>
-      <button class="x" data-act="pop-close" title="Close">×</button></div>
+      <select data-f="kind">${Object.entries(FX).map(([k, v]) => `<option value="${k}" ${k === m.kind ? 'selected' : ''}>${esc(tr(v.name))}</option>`).join('')}</select>
+      <button class="x" data-act="pop-close" title="${tr('Close')}">×</button></div>
     <div class="note">📍 ${where}</div>
-    <label class="f">Description<input type="text" data-f="label" value="${esc(m.label)}" placeholder="e.g. above the worktop, left of the bed"></label>
-    ${d.wall ? `<label class="f">Height to box centre (cm)<input type="number" inputmode="numeric" data-f="height_cm" value="${m.height_cm ?? ''}" placeholder="${d.h ?? ''}"></label>
+    <label class="f">${tr('Description')}<input type="text" data-f="label" value="${esc(m.label)}" placeholder="${tr('e.g. above the worktop, left of the bed')}"></label>
+    ${d.wall ? `<label class="f">${tr('Height to box centre (cm)')}<input type="number" inputmode="numeric" data-f="height_cm" value="${m.height_cm ?? ''}" placeholder="${d.h ?? ''}"></label>
       <div class="chips">${hs.map(v => `<button data-height="${v}" class="${m.height_cm === v ? 'on' : ''}">${v}</button>`).join('')}</div>` : ''}
     ${extra}
     <div class="row">
-      <button class="btn small" data-act="mk-rotate" title="Rotate">↻ Rotate</button>
-      <button class="btn small" data-act="mk-dup" title="Duplicate">⧉ Copy</button>
+      <button class="btn small" data-act="mk-rotate">↻ ${tr('Rotate')}</button>
+      <button class="btn small" data-act="mk-dup" title="${tr('Duplicate')}">⧉ ${tr('Copy')}</button>
       <span style="flex:1"></span>
-      <button class="btn small danger" data-act="mk-del">Delete</button>
+      <button class="btn small danger" data-act="mk-del">${tr('Delete')}</button>
     </div>`;
   po.classList.remove('hidden');
   positionPopover();
@@ -595,7 +596,7 @@ function positionInfo(m, room, s) {
     pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length]; const pr = segProj([m.x, m.y], a, b); if (!best || pr.d < best.d) best = { ...pr, a, b }; });
     if (!best || best.d * s > 0.05) return '';
     const d1 = best.t * best.len * s, d2 = (1 - best.t) * best.len * s;
-    return `${nf(d1)} m / ${nf(d2)} m from the corners`;
+    return `${nf(d1)} m / ${nf(d2)} m ${tr('from the corners')}`;
   }
   // Ceiling fixtures: shortest distance to a "horizontal" and a "vertical" wall.
   let dx = Infinity, dy = Infinity;
@@ -604,7 +605,7 @@ function positionInfo(m, room, s) {
     if (Math.abs(b[0] - a[0]) < Math.abs(b[1] - a[1])) dx = Math.min(dx, pr.d); else dy = Math.min(dy, pr.d);
   });
   const parts = [dx, dy].filter(isFinite).map(v => nf(v * s));
-  return parts.length ? `${parts.join(' m / ')} m from the walls` : '';
+  return parts.length ? `${parts.join(' m / ')} m ${tr('from the walls')}` : '';
 }
 
 function positionPopover() {
@@ -890,14 +891,14 @@ function measText(a, b) {
   return s ? fmtM(dist(a, b) * s) : `${Math.round(dist(a, b))} px`;
 }
 function measureHint(f) {
-  if (!f?.m_per_px) return `Set the scale first to measure in metres <button data-act="mode" data-mode="scale">Set scale</button>`;
-  const clear = U.meas.length ? ' <button class="alt" data-act="meas-clear">Clear</button>' : '';
-  if (U.measA) return 'Tap the end point — snaps to corners and walls, Alt = free' + clear;
+  if (!f?.m_per_px) return `${tr('Set the scale first to measure in metres')} <button data-act="mode" data-mode="scale">${tr('Set scale')}</button>`;
+  const clear = U.meas.length ? ` <button class="alt" data-act="meas-clear">${tr('Clear')}</button>` : '';
+  if (U.measA) return tr('Tap the end point — snaps to corners and walls, Alt = free') + clear;
   const m = U.meas[U.measLast ?? U.meas.length - 1];
-  if (!m) return 'Tap two points to measure. Points snap to corners and walls; nearly straight lines are straightened.';
+  if (!m) return tr('Tap two points to measure. Points snap to corners and walls; nearly straight lines are straightened.');
   const s = f.m_per_px, dx = Math.abs(m.b[0] - m.a[0]) * s, dy = Math.abs(m.b[1] - m.a[1]) * s;
   const diag = dx > 0.01 && dy > 0.01 ? ` <span style="opacity:.7">(${nf(dx)} × ${nf(dy)})</span>` : '';
-  return `<span><b style="white-space:nowrap">${measText(m.a, m.b)}</b>${diag} · tap again for another measurement</span>` + clear;
+  return `<span><b style="white-space:nowrap">${measText(m.a, m.b)}</b>${diag} · ${tr('tap again for another measurement')}</span>` + clear;
 }
 function measureSvg(u) {
   if (U.mode !== 'measure') return '';
@@ -932,13 +933,13 @@ async function calibTap(w) {
   renderAll();
   if (U.calib.length < 2) return;
   const px = dist(U.calib[0], U.calib[1]);
-  const r = await ask({ title: 'Set scale', text: `The line is ${Math.round(px)} pixels long. How long is it in reality?`,
-    fields: [{ name: 'len', label: 'Length in metres', type: 'number', step: 'any', placeholder: 'e.g. 4.20' }], ok: 'Set scale' });
+  const r = await ask({ title: tr('Set scale'), text: tr('The line is {px} pixels long. How long is it in reality?', { px: Math.round(px) }),
+    fields: [{ name: 'len', label: tr('Length in metres'), type: 'number', step: 'any', placeholder: tr('e.g. {v}', { v: nf(4.2) }) }], ok: tr('Set scale') });
   const len = r && parseFloat(String(r.len).replace(',', '.'));
   U.calib = null;
   if (!len || !(len > 0)) { renderAll(); return; }
   await patch('floors', U.floorId, { m_per_px: len / px });
-  toast(`Scale set: 1 m = ${Math.round(px / len)} px`);
+  toast(tr('Scale set: 1 m = {px} px', { px: Math.round(px / len) }));
   setMode(floorRooms().length ? 'view' : 'rooms');
 }
 
@@ -960,20 +961,20 @@ async function finishDraw() {
   const pts = U.draw; U.draw = null; U.hoverW = null; U.guides = [];
   if (!pts || pts.length < 3) { renderAll(); return; }
   const n = D.rooms.length;
-  const r = await ask({ title: 'New room', fields: [{ name: 'name', label: 'Name', value: '', placeholder: 'e.g. Living room' }], ok: 'Save' });
+  const r = await ask({ title: tr('New room'), fields: [{ name: 'name', label: tr('Name'), value: '', placeholder: tr('e.g. Living room') }] });
   if (!r) { renderAll(); return; }
-  const room = await create('rooms', { floor_id: U.floorId, name: r.name || `Room ${n + 1}`, color: ROOM_COLORS[n % ROOM_COLORS.length], points: pts });
+  const room = await create('rooms', { floor_id: U.floorId, name: r.name || tr('Room {n}', { n: n + 1 }), color: ROOM_COLORS[n % ROOM_COLORS.length], points: pts });
   U.editRoom = room.id; U.ctx = { kind: 'room', id: room.id };
   renderAll();
 }
 
 async function editEdge(i) {
   const r = idx.room.get(U.editRoom), s = floor()?.m_per_px;
-  if (!s) { toast('Set the scale first', true); return; }
+  if (!s) { toast(tr('Set the scale first'), true); return; }
   const n = r.points.length, a = r.points[i], b = r.points[(i + 1) % n];
   const cur = dist(a, b) * s;
-  const res = await ask({ title: 'Wall length', text: 'The end point of this wall moves along; right angles are kept.',
-    fields: [{ name: 'len', label: 'Length in metres', type: 'number', step: 'any', value: cur.toFixed(2) }], ok: 'Apply' });
+  const res = await ask({ title: tr('Wall length'), text: tr('The end point of this wall moves along; right angles are kept.'),
+    fields: [{ name: 'len', label: tr('Length in metres'), type: 'number', step: 'any', value: nf(cur) }], ok: tr('Apply') });
   const L = res && parseFloat(String(res.len).replace(',', '.'));
   if (!L || !(L > 0)) return;
   const pts = r.points.map(p => [...p]);
@@ -1016,15 +1017,15 @@ function openNote(id, edit = false) {
 function closeNote() { U.openNote = null; U.editing = false; }
 
 function scopeLabel(n) {
-  if (n.scope === 'room') return idx.room.get(n.scope_id)?.name ?? 'Room';
-  if (n.scope === 'zone') return idx.zone.get(n.scope_id)?.name ?? 'Zone';
-  return 'General';
+  if (n.scope === 'room') return idx.room.get(n.scope_id)?.name ?? tr('Room');
+  if (n.scope === 'zone') return idx.zone.get(n.scope_id)?.name ?? tr('Zone');
+  return tr('General');
 }
 function noteTitle(n) {
   if (n.title) return n.title;
   const line = n.body.split('\n').map(l => l.replace(/^[#>*\-\s\[\]x]+/i, '').trim()).find(Boolean);
   if (line) return line.slice(0, 80);
-  return idx.imgs.get(n.id)?.length ? 'Photo' : 'Untitled';
+  return idx.imgs.get(n.id)?.length ? tr('Photo') : tr('Untitled');
 }
 function excerpt(n) {
   return n.body.replace(/(^|\s)#todo\b/gi, '').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#>*_`~|]/g, '').replace(/- \[[ x]\]/gi, '•').replace(/\s+/g, ' ').trim().slice(0, 220);
@@ -1050,24 +1051,24 @@ function noteRoom(n) {
 function noteTodos(notes) {
   const out = [];
   for (const n of notes) for (const t of n.todos || []) out.push({ ...t, note: n, room: noteRoom(n) });
-  return out.sort((a, b) => (a.room?.name ?? '~').localeCompare(b.room?.name ?? '~', 'en') || b.note.updated - a.note.updated || a.line - b.line);
+  return out.sort((a, b) => (a.room?.name ?? '~').localeCompare(b.room?.name ?? '~', LANG) || b.note.updated - a.note.updated || a.line - b.line);
 }
 const roomOpenChecks = r => ROOM_TODOS.filter(([k]) => !r.checks?.[k]).length;
 
 function todoRowHtml(t, showRoom = true) {
   const id = `td-${t.note.id}-${t.line}`;
-  const where = t.room ? t.room.name : t.note.scope === 'zone' ? scopeLabel(t.note) : 'General';
+  const where = t.room ? t.room.name : t.note.scope === 'zone' ? scopeLabel(t.note) : tr('General');
   return `<div class="todo ${t.done ? 'done' : ''}">
     <input type="checkbox" id="${id}" data-todo="${t.note.id}" data-line="${t.line}" ${t.done ? 'checked' : ''}>
     <label for="${id}">${esc(t.text)}</label>
     <span class="links">
       ${showRoom ? (t.room ? `<button class="lnk" data-ctx="room" data-id="${t.room.id}"><span class="dot" style="background:${t.room.color}"></span>${esc(where)}</button>` : `<span class="lnk muted">${esc(where)}</span>`) : ''}
-      <button class="lnk" data-open="${t.note.id}" title="Open note">📝 ${esc(noteTitle(t.note))}</button>
+      <button class="lnk" data-open="${t.note.id}" title="${tr('Open note')}">📝 ${esc(noteTitle(t.note))}</button>
     </span></div>`;
 }
 function roomChecksHtml(r) {
   return ROOM_TODOS.map(([k, long, short]) =>
-    `<button class="tchip ${r.checks?.[k] ? 'on' : ''}" data-rcheck="${r.id}" data-k="${k}" title="${esc(long)}">${r.checks?.[k] ? '✓' : '○'} ${esc(short)}</button>`).join('');
+    `<button class="tchip ${r.checks?.[k] ? 'on' : ''}" data-rcheck="${r.id}" data-k="${k}" title="${esc(tr(long))}">${r.checks?.[k] ? '✓' : '○'} ${esc(tr(short))}</button>`).join('');
 }
 
 /** Todo overview on the home screen. */
@@ -1075,7 +1076,7 @@ function todosHtml() {
   const q = U.search.toLowerCase();
   const all = noteTodos(D.notes).filter(t => !q || t.text.toLowerCase().includes(q) || (t.room?.name ?? '').toLowerCase().includes(q));
   const open = all.filter(t => !t.done), done = all.filter(t => t.done);
-  const rooms = D.floors.flatMap(f => floorRooms(f.id).sort((a, b) => a.name.localeCompare(b.name, 'en')))
+  const rooms = D.floors.flatMap(f => floorRooms(f.id).sort((a, b) => a.name.localeCompare(b.name, LANG)))
     .filter(r => !q || r.name.toLowerCase().includes(q));
   const roomsOpen = rooms.filter(r => roomOpenChecks(r) > 0);
   const roomsDone = rooms.filter(r => roomOpenChecks(r) === 0);
@@ -1083,17 +1084,17 @@ function todosHtml() {
   const nDone = done.length + rooms.reduce((s, r) => s + ROOM_TODOS.length - roomOpenChecks(r), 0);
   if (!all.length && !rooms.length) {
     return `<div class="todos"><div class="todo-head"><h3>Todo</h3></div>
-      <div class="sub">Put <code>#todo</code> at the end of a line in a note to see it here.</div></div>`;
+      <div class="sub">${tr('Put <code>#todo</code> at the end of a line in a note to see it here.')}</div></div>`;
   }
   const roomRow = r => `<div class="rtodo"><button class="lnk" data-ctx="room" data-id="${r.id}"><span class="dot" style="background:${r.color}"></span>${esc(r.name)}</button><span class="tchips">${roomChecksHtml(r)}</span></div>`;
-  let h = `<div class="todos"><div class="todo-head"><h3>Todo <span class="count">${nOpen} open</span></h3>
-    <button class="btn small" data-act="todo-done">${U.showDone ? 'Hide completed' : `Completed (${nDone})`}</button></div>`;
+  let h = `<div class="todos"><div class="todo-head"><h3>Todo <span class="count">${tr('{n} open', { n: nOpen })}</span></h3>
+    <button class="btn small" data-act="todo-done">${U.showDone ? tr('Hide completed') : `${tr('Completed')} (${nDone})`}</button></div>`;
   if (open.length) h += open.map(t => todoRowHtml(t)).join('');
-  else if (all.length) h += `<div class="sub" style="padding:4px 0">All todos from notes are done 🎉</div>`;
-  if (roomsOpen.length) h += `<div class="todo-sub">Per room</div>${roomsOpen.map(roomRow).join('')}`;
+  else if (all.length) h += `<div class="sub" style="padding:4px 0">${tr('All todos from notes are done')} 🎉</div>`;
+  if (roomsOpen.length) h += `<div class="todo-sub">${tr('Per room')}</div>${roomsOpen.map(roomRow).join('')}`;
   if (U.showDone) {
-    if (done.length) h += `<div class="todo-sub">Completed</div>${done.map(t => todoRowHtml(t)).join('')}`;
-    if (roomsDone.length) h += `<div class="todo-sub">Rooms done</div>${roomsDone.map(roomRow).join('')}`;
+    if (done.length) h += `<div class="todo-sub">${tr('Completed')}</div>${done.map(t => todoRowHtml(t)).join('')}`;
+    if (roomsDone.length) h += `<div class="todo-sub">${tr('Rooms done')}</div>${roomsDone.map(roomRow).join('')}`;
   }
   return h + '</div>';
 }
@@ -1124,14 +1125,14 @@ function renderPanel(force = false) {
   if (U.view === 'overview') { p.innerHTML = h + overviewHtml(); return; }
   h += ctxHeadHtml();
   h += `<div class="toolbar">
-    <button class="btn pri" data-act="note-new">+ Note</button>
-    <button class="btn" data-act="photo-new">📷 Photos</button>
-    <button class="btn" data-act="url-new" title="Add an image from a link">🔗 Link</button>
-    <input class="search" type="search" placeholder="Search…" value="${esc(U.search)}" data-act="search">
+    <button class="btn pri" data-act="note-new">+ ${tr('Note')}</button>
+    <button class="btn" data-act="photo-new">📷 ${tr('Photos')}</button>
+    <button class="btn" data-act="url-new" title="${tr('Add an image from a link')}">🔗 ${tr('Link')}</button>
+    <input class="search" type="search" placeholder="${tr('Search…')}" value="${esc(U.search)}" data-act="search">
   </div>`;
   const sections = [];
   const c = U.ctx;
-  if (c.kind === 'all') { h += todosHtml(); sections.push([D.notes.length ? 'Notes' : null, D.notes]); }
+  if (c.kind === 'all') { h += todosHtml(); sections.push([D.notes.length ? tr('Notes') : null, D.notes]); }
   else if (c.kind === 'global') sections.push([null, D.notes.filter(n => n.scope === 'global')]);
   else if (c.kind === 'room') sections.push([null, notesInRoom(c.id)]);
   else if (c.kind === 'zone') {
@@ -1140,33 +1141,33 @@ function renderPanel(force = false) {
     const seen = new Set(own.map(n => n.id));
     const fromRooms = [];
     for (const rid of z.room_ids) for (const n of notesInRoom(rid)) if (!seen.has(n.id)) { seen.add(n.id); fromRooms.push(n); }
-    sections.push(['Zone', own]);
-    if (fromRooms.length) sections.push(['From the rooms', fromRooms]);
+    sections.push([tr('Zone'), own, true]);
+    if (fromRooms.length) sections.push([tr('From the rooms'), fromRooms]);
   }
   let any = false;
-  for (const [title, list] of sections) {
+  for (const [title, list, always] of sections) {
     const l = list.filter(matches);
-    if (!l.length && title !== 'Zone') continue;
+    if (!l.length && !always) continue;
     any = any || l.length > 0;
     if (title) h += `<div class="section-title">${title}</div>`;
     h += l.length ? `<div class="cards">${l.map(cardHtml).join('')}</div>` : '';
   }
-  if (!any) h += `<div class="empty-list">${U.search ? 'Nothing found.' : 'No notes here yet.<br>Create one with <b>+ Note</b>, or paste/drop an image here.'}</div>`;
+  if (!any) h += `<div class="empty-list">${U.search ? tr('Nothing found.') : tr('No notes here yet.<br>Create one with <b>+ Note</b>, or paste/drop an image here.')}</div>`;
   p.innerHTML = h;
 }
 
 function ctxBarHtml() {
   const c = U.ctx;
   let h = `<div class="ctxbar">
-    <button class="chip ${c.kind === 'all' && U.view === 'list' ? 'on' : ''}" data-ctx="all">All</button>
-    <button class="chip ${c.kind === 'global' && U.view === 'list' ? 'on' : ''}" data-ctx="global">General</button>`;
+    <button class="chip ${c.kind === 'all' && U.view === 'list' ? 'on' : ''}" data-ctx="all">${tr('All')}</button>
+    <button class="chip ${c.kind === 'global' && U.view === 'list' ? 'on' : ''}" data-ctx="global">${tr('General')}</button>`;
   if (c.kind === 'room') {
     const r = idx.room.get(c.id);
     h += `<button class="chip ${U.view === 'list' ? 'on' : ''}" data-ctx="room" data-id="${c.id}"><span class="dot" style="background:${r.color}"></span>${esc(r.name)}</button>`;
   }
   for (const z of D.zones) h += `<button class="chip ${c.kind === 'zone' && c.id === z.id && U.view === 'list' ? 'on' : ''}" data-ctx="zone" data-id="${z.id}"><span class="dot" style="background:${z.color}"></span>${esc(z.name)}</button>`;
-  h += `<button class="chip add" data-act="zone-new">+ Zone</button>
-    <button class="chip ${U.view === 'overview' ? 'on' : ''}" data-act="overview">▦ Overview</button></div>`;
+  h += `<button class="chip add" data-act="zone-new">+ ${tr('Zone')}</button>
+    <button class="chip ${U.view === 'overview' ? 'on' : ''}" data-act="overview">▦ ${tr('Overview')}</button></div>`;
   return h;
 }
 
@@ -1178,7 +1179,7 @@ function fxCounts(markers) {
 function fxCountHtml(c) {
   const keys = Object.keys(FX).filter(k => c[k]);
   if (!keys.length) return '';
-  return `<div class="fxcount">${keys.map(k => `<span title="${esc(FX[k].name)}">${fxIconSvg(k, 20)}${c[k]}× ${esc(FX[k].short)}</span>`).join('')}</div>`;
+  return `<div class="fxcount">${keys.map(k => `<span title="${esc(tr(FX[k].name))}">${fxIconSvg(k, 20)}${c[k]}× ${esc(tr(FX[k].short))}</span>`).join('')}</div>`;
 }
 
 function ctxHeadHtml() {
@@ -1191,20 +1192,20 @@ function ctxHeadHtml() {
       <h2><span class="dot" style="background:${r.color}"></span>${esc(r.name)}</h2>
       <div class="sub">${esc(f?.name)}${zones.length ? ' · ' + zones.map(z => esc(z.name)).join(', ') : ''}</div>
       ${m.scaled ? `<div class="stats">
-        <span>Area <b>${fmtA(m.area)}</b></span>
-        ${m.rect ? `<span>Inner size <b>${nf(m.rect[0])} × ${nf(m.rect[1])} m</b></span>` : ''}
-        <span>Perimeter <b>${fmtM(m.perim)}</b></span>
-        ${r.ceiling_height ? `<span>Ceiling <b>${fmtM(r.ceiling_height)}</b></span><span>Volume <b>${nf(m.volume, 1)} m³</b></span>` : ''}
-      </div>` : `<div class="stats"><span class="sub">Set the scale for dimensions and area.</span></div>`}
+        <span>${tr('Area')} <b>${fmtA(m.area)}</b></span>
+        ${m.rect ? `<span>${tr('Inner size')} <b>${nf(m.rect[0])} × ${nf(m.rect[1])} m</b></span>` : ''}
+        <span>${tr('Perimeter')} <b>${fmtM(m.perim)}</b></span>
+        ${r.ceiling_height ? `<span>${tr('Ceiling')} <b>${fmtM(r.ceiling_height)}</b></span><span>${tr('Volume')} <b>${nf(m.volume, 1)} m³</b></span>` : ''}
+      </div>` : `<div class="stats"><span class="sub">${tr('Set the scale for dimensions and area.')}</span></div>`}
       ${fxCountHtml(fxCounts(mk))}
       <div class="todos inroom"><div class="todo-head"><h3>Todo</h3></div>
         <div class="tchips">${roomChecksHtml(r)}</div>
         ${noteTodos(notesInRoom(r.id)).filter(t => !t.done || U.showDone).map(t => todoRowHtml(t, false)).join('')}
       </div>
       <div class="rowbtns">
-        <button class="btn small" data-act="room-edit">Name / colour / ceiling</button>
-        <button class="btn small" data-act="room-shape">Edit shape</button>
-        <button class="btn small" data-act="room-focus">Show on map</button>
+        <button class="btn small" data-act="room-edit">${tr('Name / colour / ceiling')}</button>
+        <button class="btn small" data-act="room-shape">${tr('Edit shape')}</button>
+        <button class="btn small" data-act="room-focus">${tr('Show on map')}</button>
       </div></div>`;
   }
   if (c.kind === 'zone') {
@@ -1213,16 +1214,16 @@ function ctxHeadHtml() {
     const mk = D.markers.filter(x => FX[x.kind] && rooms.some(r => r.floor_id === x.floor_id && r.points.length > 2 && inPoly(markerProbe(x), r.points)));
     return `<div class="ctxhead">
       <h2><span class="dot" style="background:${z.color}"></span>${esc(z.name)}</h2>
-      <div class="stats"><span>Area <b>${rooms.length ? fmtA(a.area) : '–'}</b>${a.complete ? '' : ' <span class="sub">(not all scales set)</span>'}</span><span>${rooms.length} room${rooms.length === 1 ? '' : 's'}</span></div>
+      <div class="stats"><span>${tr('Area')} <b>${rooms.length ? fmtA(a.area) : '–'}</b>${a.complete ? '' : ` <span class="sub">(${tr('not all scales set')})</span>`}</span><span>${trn(rooms.length, '{n} room', '{n} rooms')}</span></div>
       <div class="fxcount">${rooms.map(r => `<button class="chip" data-ctx="room" data-id="${r.id}"><span class="dot" style="background:${r.color}"></span>${esc(r.name)}</button>`).join('')}</div>
       ${fxCountHtml(fxCounts(mk))}
       <div class="rowbtns">
-        <button class="btn small ${U.zonePick === z.id ? 'acc' : ''}" data-act="zone-pick">${U.zonePick === z.id ? 'Done picking' : 'Pick rooms on the map'}</button>
-        <button class="btn small" data-act="zone-edit">Name / colour</button>
-        <button class="btn small danger" data-act="zone-del">Delete zone</button>
+        <button class="btn small ${U.zonePick === z.id ? 'acc' : ''}" data-act="zone-pick">${U.zonePick === z.id ? tr('Done picking') : tr('Pick rooms on the map')}</button>
+        <button class="btn small" data-act="zone-edit">${tr('Name / colour')}</button>
+        <button class="btn small danger" data-act="zone-del">${tr('Delete zone')}</button>
       </div></div>`;
   }
-  if (c.kind === 'global') return `<div class="ctxhead"><h2>General</h2><div class="sub">Notes that don't belong to a single room.</div></div>`;
+  if (c.kind === 'global') return `<div class="ctxhead"><h2>${tr('General')}</h2><div class="sub">${tr("Notes that don't belong to a single room.")}</div></div>`;
   return '';
 }
 
@@ -1230,9 +1231,9 @@ function cardHtml(n) {
   const imgs = idx.imgs.get(n.id) || [];
   const pins = (idx.pins.get(n.id) || []).length;
   const ex = excerpt(n);
-  const handle = `<button class="handle" data-handle="${n.id}" title="Drag onto the floor plan to link"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor"/></svg></button>`;
+  const handle = `<button class="handle" data-handle="${n.id}" title="${tr('Drag onto the floor plan to link')}"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor"/></svg></button>`;
   return `<article class="card" data-note="${n.id}">
-    ${imgs.length ? `<div class="thumb" style="background-image:url('/files/${imgs[0].thumb}')">${handle}${imgs.length > 1 ? `<span class="n">${imgs.length} photos</span>` : ''}</div>` : ''}
+    ${imgs.length ? `<div class="thumb" style="background-image:url('/files/${imgs[0].thumb}')">${handle}${imgs.length > 1 ? `<span class="n">${tr('{n} photos', { n: imgs.length })}</span>` : ''}</div>` : ''}
     <div class="body">${imgs.length ? '' : handle}
       <h3>${esc(noteTitle(n))}</h3>
       ${ex && ex !== noteTitle(n) ? `<div class="ex">${esc(ex)}</div>` : ''}
@@ -1245,12 +1246,12 @@ function cardHtml(n) {
 }
 
 function overviewHtml() {
-  const cols = [['Power', ['socket', 'socket2', 'power'], 'socket'], ['Data', ['data'], 'data'], ['Switches', SWITCHES, 'switch'], ['Lighting', LIGHTS, 'light']];
-  const head = `<tr><th>Room</th><th>m²</th>${cols.map(c => `<th title="${c[0]}">${fxIconSvg(c[2], 22)}</th>`).join('')}<th title="Open todos">Todo</th></tr>`;
-  let h = `<div class="pad"><h2 style="margin:4px 0 12px;letter-spacing:-.02em">Overview</h2><table class="ov">${head}`;
+  const cols = [['Sockets', ['socket', 'socket2', 'power'], 'socket'], ['Data', ['data'], 'data'], ['Switches', SWITCHES, 'switch'], ['Lighting', LIGHTS, 'light']];
+  const head = `<tr><th>${tr('Room')}</th><th>m²</th>${cols.map(c => `<th title="${tr(c[0])}">${fxIconSvg(c[2], 22)}</th>`).join('')}<th title="${tr('Open todos')}">Todo</th></tr>`;
+  let h = `<div class="pad"><h2 style="margin:4px 0 12px;letter-spacing:-.02em">${tr('Overview')}</h2><table class="ov">${head}`;
   const tot = { a: 0, c: cols.map(() => 0) };
   for (const f of D.floors) {
-    const rooms = floorRooms(f.id).sort((a, b) => a.name.localeCompare(b.name, 'en'));
+    const rooms = floorRooms(f.id).sort((a, b) => a.name.localeCompare(b.name, LANG));
     if (!rooms.length) continue;
     h += `<tr class="flh"><td colspan="${3 + cols.length}">${esc(f.name)}</td></tr>`;
     for (const r of rooms) {
@@ -1263,14 +1264,14 @@ function overviewHtml() {
       h += `<tr class="click" data-ctx="room" data-id="${r.id}"><td>${esc(r.name)}</td><td>${m.scaled ? nf(m.area, 1) : '–'}</td>${counts.map(v => `<td>${v || ''}</td>`).join('')}<td>${todo || '✓'}</td></tr>`;
     }
   }
-  h += `<tr class="tot"><td>Total</td><td>${nf(tot.a, 1)}</td>${tot.c.map(v => `<td>${v}</td>`).join('')}<td></td></tr></table>`;
+  h += `<tr class="tot"><td>${tr('Total')}</td><td>${nf(tot.a, 1)}</td>${tot.c.map(v => `<td>${v}</td>`).join('')}<td></td></tr></table>`;
   if (D.zones.length) {
-    h += `<h3 style="margin:22px 0 8px">Zones</h3><table class="ov"><tr><th>Zone</th><th>Rooms</th><th>m²</th></tr>`;
+    h += `<h3 style="margin:22px 0 8px">${tr('Zones')}</h3><table class="ov"><tr><th>${tr('Zone')}</th><th>${tr('Rooms')}</th><th>m²</th></tr>`;
     for (const z of D.zones) h += `<tr class="click" data-ctx="zone" data-id="${z.id}"><td><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${z.color};margin-right:6px"></span>${esc(z.name)}</td><td>${z.room_ids.filter(i => idx.room.has(i)).length}</td><td>${nf(zoneArea(z).area, 1)}</td></tr>`;
     h += '</table>';
   }
   const all = fxCounts(D.markers);
-  h += `<h3 style="margin:22px 0 8px">Electrical total</h3>${fxCountHtml(all) || '<div class="sub">Nothing placed yet.</div>'}</div>`;
+  h += `<h3 style="margin:22px 0 8px">${tr('Electrical total')}</h3>${fxCountHtml(all) || `<div class="sub">${tr('Nothing placed yet.')}</div>`}</div>`;
   return h;
 }
 
@@ -1278,36 +1279,36 @@ function overviewHtml() {
 function noteFullHtml(n) {
   const imgs = idx.imgs.get(n.id) || [];
   const bar = `<div class="bar">
-    <button class="btn small" data-act="note-back">← Back</button><span class="sp"></span>
+    <button class="btn small" data-act="note-back">← ${tr('Back')}</button><span class="sp"></span>
     ${U.editing
-      ? `<button class="btn small" data-act="note-cancel">Cancel</button><button class="btn small pri" data-act="note-save">Save</button>`
-      : `<button class="btn small" data-act="note-place" title="Place on the floor plan">📍 Place</button>
-         <button class="btn small" data-act="note-edit">✎ Edit</button>
-         <button class="btn small danger" data-act="note-del" title="Delete">🗑</button>`}
+      ? `<button class="btn small" data-act="note-cancel">${tr('Cancel')}</button><button class="btn small pri" data-act="note-save">${tr('Save')}</button>`
+      : `<button class="btn small" data-act="note-place" title="${tr('Place on the floor plan')}">📍 ${tr('Place')}</button>
+         <button class="btn small" data-act="note-edit">✎ ${tr('Edit')}</button>
+         <button class="btn small danger" data-act="note-del" title="${tr('Delete')}">🗑</button>`}
   </div>`;
   if (U.editing) {
-    const scopes = [`<option value="global">General</option>`]
-      .concat(D.floors.flatMap(f => floorRooms(f.id).map(r => `<option value="room:${r.id}" ${n.scope === 'room' && n.scope_id === r.id ? 'selected' : ''}>Room: ${esc(r.name)} (${esc(f.name)})</option>`)))
-      .concat(D.zones.map(z => `<option value="zone:${z.id}" ${n.scope === 'zone' && n.scope_id === z.id ? 'selected' : ''}>Zone: ${esc(z.name)}</option>`));
+    const scopes = [`<option value="global">${tr('General')}</option>`]
+      .concat(D.floors.flatMap(f => floorRooms(f.id).map(r => `<option value="room:${r.id}" ${n.scope === 'room' && n.scope_id === r.id ? 'selected' : ''}>${tr('Room')}: ${esc(r.name)} (${esc(f.name)})</option>`)))
+      .concat(D.zones.map(z => `<option value="zone:${z.id}" ${n.scope === 'zone' && n.scope_id === z.id ? 'selected' : ''}>${tr('Zone')}: ${esc(z.name)}</option>`));
     return `<div class="note-full">${bar}<div class="pad editor">
-      <input class="title" id="ed-title" placeholder="Title" value="${esc(n.title)}">
+      <input class="title" id="ed-title" placeholder="${tr('Title')}" value="${esc(n.title)}">
       <select id="ed-scope">${scopes.join('')}</select>
       <div class="mdtools">
-        <button data-md="b" title="Bold"><b>B</b></button><button data-md="i" title="Italic"><i>I</i></button>
-        <button data-md="h" title="Heading">H</button><button data-md="ul" title="List">•</button>
-        <button data-md="task" title="Task list">☐</button><button data-md="todo" title="Turn this line into a todo">#todo</button><button data-md="link" title="Link">🔗</button>
-        <button data-md="table" title="Table">▦</button><span style="flex:1"></span>
-        <button data-md="preview" id="ed-prev-btn">Preview</button>
+        <button data-md="b" title="${tr('Bold')}"><b>B</b></button><button data-md="i" title="${tr('Italic')}"><i>I</i></button>
+        <button data-md="h" title="${tr('Heading')}">H</button><button data-md="ul" title="${tr('List')}">•</button>
+        <button data-md="task" title="${tr('Task list')}">☐</button><button data-md="todo" title="${tr('Turn this line into a todo')}">#todo</button><button data-md="link" title="${tr('Link')}">🔗</button>
+        <button data-md="table" title="${tr('Table')}">▦</button><span style="flex:1"></span>
+        <button data-md="preview" id="ed-prev-btn">${tr('Preview')}</button>
       </div>
-      <textarea id="ed-body" placeholder="Write in Markdown…  e.g.\n- [ ] request a quote for tiles\n- [x] window frame colour: RAL 9010">${esc(n.body)}</textarea>
+      <textarea id="ed-body" placeholder="${esc(tr('Write in Markdown…  e.g.\n- [ ] request a quote for tiles\n- [x] window frame colour: RAL 9010'))}">${esc(n.body)}</textarea>
       <div class="md preview hidden" id="ed-preview"></div>
-      <div class="drop-hint" id="ed-drop">Drop photos here, paste them, <button class="btn small" data-act="img-add">choose files</button> or <button class="btn small" data-act="img-url">from a link</button></div>
+      <div class="drop-hint" id="ed-drop">${tr('Drop photos here, paste them,')} <button class="btn small" data-act="img-add">${tr('choose files')}</button> ${tr('or')} <button class="btn small" data-act="img-url">${tr('from a link')}</button></div>
       <div id="note-side"></div>
     </div></div>`;
   }
   return `<div class="note-full">${bar}<div class="pad">
     <h1>${esc(noteTitle(n))}</h1>
-    <div class="metaline"><span class="chip">${esc(scopeLabel(n))}</span><span>${esc(n.author)} · ${ago(n.created)}${n.updated - n.created > 60 ? ` · updated ${ago(n.updated)}${n.updated_by && n.updated_by !== n.author ? ' by ' + esc(n.updated_by) : ''}` : ''}</span></div>
+    <div class="metaline"><span class="chip">${esc(scopeLabel(n))}</span><span>${esc(n.author)} · ${ago(n.created)}${n.updated - n.created > 60 ? ` · ${tr('updated')} ${ago(n.updated)}${n.updated_by && n.updated_by !== n.author ? ` ${tr('by')} ` + esc(n.updated_by) : ''}` : ''}</span></div>
     ${imgs.length ? `<div class="gallery ${imgs.length === 1 ? 'one' : ''}">${imgs.map((im, i) => `<div class="im" data-lb="${i}"><img src="/files/${imgs.length === 1 ? im.file : im.thumb}" loading="lazy" alt=""></div>`).join('')}</div>` : ''}
     <div class="md" id="note-md">${n.body_html}</div>
     ${locsHtml(n)}
@@ -1315,18 +1316,18 @@ function noteFullHtml(n) {
 }
 function locsHtml(n) {
   const pins = idx.pins.get(n.id) || [];
-  return `<div class="locs"><h4>On the floor plan</h4>${pins.length ? pins.map(m => {
+  return `<div class="locs"><h4>${tr('On the floor plan')}</h4>${pins.length ? pins.map(m => {
     const r = markerRoom(m), f = idx.floor.get(m.floor_id);
-    return `<div class="loc">📍 <span>${esc(r?.name ?? 'Loose point')} <span class="sub">· ${esc(f?.name)}</span></span><span class="sp"></span>
-      <button class="btn small" data-act="pin-show" data-id="${m.id}">Show</button><button class="btn small" data-act="pin-del" data-id="${m.id}" title="Unlink">✕</button></div>`;
-  }).join('') : `<div class="sub">Not placed yet. Drag the card (📍) onto the floor plan, or use “📍 Place”.</div>`}</div>`;
+    return `<div class="loc">📍 <span>${esc(r?.name ?? tr('Loose point'))} <span class="sub">· ${esc(f?.name)}</span></span><span class="sp"></span>
+      <button class="btn small" data-act="pin-show" data-id="${m.id}">${tr('Show')}</button><button class="btn small" data-act="pin-del" data-id="${m.id}" title="${tr('Unlink')}">✕</button></div>`;
+  }).join('') : `<div class="sub">${tr('Not placed yet. Drag the card (📍) onto the floor plan, or use “📍 Place”.')}</div>`}</div>`;
 }
 /** While editing, refresh only the photos and locations so the text doesn't jump. */
 function renderNoteSide() {
   const n = idx.note.get(U.openNote), el = $('#note-side');
   if (!n || !el) return;
   const imgs = idx.imgs.get(n.id) || [];
-  el.innerHTML = (imgs.length ? `<div class="gallery">${imgs.map((im, i) => `<div class="im" data-lb="${i}"><img src="/files/${im.thumb}" alt=""><button class="del" data-act="img-del" data-id="${im.id}" title="Delete photo">✕</button></div>`).join('')}</div>` : '') + locsHtml(n);
+  el.innerHTML = (imgs.length ? `<div class="gallery">${imgs.map((im, i) => `<div class="im" data-lb="${i}"><img src="/files/${im.thumb}" alt=""><button class="del" data-act="img-del" data-id="${im.id}" title="${tr('Delete photo')}">✕</button></div>`).join('')}</div>` : '') + locsHtml(n);
 }
 function afterNoteRender() {
   if (U.editing) { renderNoteSide(); return; }
@@ -1359,8 +1360,8 @@ function decorateTodoTags(root, n) {
       const t = todos[i++];
       const b = document.createElement('button');
       b.className = 'todotag' + (t?.done ? ' done' : '');
-      b.textContent = t?.done ? '✓ done' : '☐ todo';
-      b.title = t?.done ? 'Reopen' : 'Check off';
+      b.textContent = t?.done ? '✓ ' + tr('done') : '☐ todo';
+      b.title = t?.done ? tr('Reopen') : tr('Check off');
       if (t) b.dataset.todotag = t.line;
       frag.append(b);
       last = start + 5;
@@ -1428,7 +1429,7 @@ async function readFiles(files) {
     }
     if (ok) out.push(ok); else bad.push(name);
   }
-  if (bad.length) toast(`Could not read ${bad.join(', ')} — please try again`, true);
+  if (bad.length) toast(tr('Could not read {files} — please try again', { files: bad.join(', ') }), true);
   return out;
 }
 /** Send multipart with progress; rejects with {net: true} on a connection error. */
@@ -1440,14 +1441,15 @@ function sendForm(url, fd, onProgress) {
     x.timeout = 180000;
     x.upload.onprogress = e => { if (e.lengthComputable) onProgress?.(e.loaded / e.total); };
     x.onload = () => {
-      if (x.status === 401) { location.href = '/login'; return reject({ msg: 'not logged in' }); }
+      if (x.status === 401) { location.href = '/login'; return reject({ msg: tr('not logged in') }); }
       if (x.status >= 200 && x.status < 300) return resolve();
       let m = x.statusText || `error ${x.status}`;
       try { m = JSON.parse(x.responseText).error || m; } catch {}
+      m = trErr(m);
       reject({ msg: m, net: x.status === 502 || x.status === 503 || x.status === 504 });
     };
-    x.onerror = () => reject({ net: true, msg: 'no connection' });
-    x.ontimeout = () => reject({ net: true, msg: 'it took too long' });
+    x.onerror = () => reject({ net: true, msg: tr('no connection') });
+    x.ontimeout = () => reject({ net: true, msg: tr('it took too long') });
     x.send(fd);
   });
 }
@@ -1456,32 +1458,32 @@ async function uploadImages(noteId, files) {
   if (!files.length) return false;
   const fd = new FormData();
   for (const f of files) fd.append('files', f, f.name || 'pasted.png');
-  const what = `${files.length} image${files.length > 1 ? 's' : ''}`;
+  const what = trn(files.length, '{n} image', '{n} images');
   let err = null;
   for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt) { toast(`Connection failed, retrying (${attempt + 1}/3)…`); await new Promise(r => setTimeout(r, 1500 * attempt)); }
+    if (attempt) { toast(tr('Connection failed, retrying ({n}/3)…', { n: attempt + 1 })); await new Promise(r => setTimeout(r, 1500 * attempt)); }
     try {
-      toast(`Uploading ${what}…`);
-      await sendForm(`/api/notes/${noteId}/images`, fd, p => { if (p < 1) $('#toast').textContent = `Uploading ${what}… ${Math.round(p * 100)}%`; else $('#toast').textContent = `Processing ${what}…`; });
+      toast(tr('Uploading {what}…', { what }));
+      await sendForm(`/api/notes/${noteId}/images`, fd, p => { $('#toast').textContent = p < 1 ? `${tr('Uploading {what}…', { what })} ${Math.round(p * 100)}%` : tr('Processing {what}…', { what }); });
       err = null; break;
     } catch (e) { err = e; if (!e.net) break; }
   }
   if (err) {
     // The photos stay in memory: retrying works without taking them again.
-    toast(`Upload failed: ${err.msg}`, true, { label: 'Retry', fn: () => uploadImages(noteId, files) });
+    toast(`${tr('Upload failed:')} ${err.msg}`, true, { label: tr('Retry'), fn: () => uploadImages(noteId, files) });
     return false;
   }
   await load();
-  toast('Uploaded');
+  toast(tr('Uploaded'));
   return true;
 }
 /** Image from a link: the server downloads it and stores it locally. */
 async function addImageUrl(url, noteId = U.openNote) {
   url = String(url || '').trim();
-  if (!/^https?:\/\//i.test(url)) { toast('That is not an http(s) link', true); return; }
+  if (!/^https?:\/\//i.test(url)) { toast(tr('That is not an http(s) link'), true); return; }
   let id = noteId, fresh = false;
   if (!id) { id = (await create('notes', { title: '', body: '', ...ctxScope() })).id; fresh = true; }
-  toast('Fetching image…');
+  toast(tr('Fetching image…'));
   try {
     await api('POST', `/api/notes/${id}/images/url`, { url });
   } catch {
@@ -1489,19 +1491,19 @@ async function addImageUrl(url, noteId = U.openNote) {
     return;
   }
   await load();
-  toast('Image added');
+  toast(tr('Image added'));
   if (fresh) openNote(id); else if (!U.editing) renderPanel(true);
 }
 async function askImageUrl(noteId) {
-  const r = await ask({ title: 'Image from link', text: 'Link to an image, or to a page (e.g. a web shop) — then its preview image is used. The image is stored here.',
-    fields: [{ name: 'url', label: 'Link', placeholder: 'https://…' }], ok: 'Fetch' });
+  const r = await ask({ title: tr('Image from link'), text: tr('Link to an image, or to a page (e.g. a web shop) — then its preview image is used. The image is stored here.'),
+    fields: [{ name: 'url', label: tr('Link'), placeholder: 'https://…' }], ok: tr('Fetch') });
   if (r?.url) await addImageUrl(r.url, noteId);
 }
 
 async function createPin(noteId, w) {
   const room = roomAt(w);
   await create('markers', { floor_id: U.floorId, kind: 'note', note_id: noteId, x: w[0], y: w[1] });
-  toast(room ? `Linked to ${room.name}` : 'Placed on the floor plan');
+  toast(room ? tr('Linked to {room}', { room: room.name }) : tr('Placed on the floor plan'));
   if (U.openNote !== noteId) openNote(noteId); else renderAll();
 }
 
@@ -1515,8 +1517,8 @@ function mdTool(kind) {
     const block = v.slice(ls, e);
     ta.setRangeText(block.split('\n').map(l => p + l).join('\n'), ls, e, 'end');
   };
-  if (kind === 'b') wrap('**', '**', 'bold');
-  else if (kind === 'i') wrap('_', '_', 'italic');
+  if (kind === 'b') wrap('**', '**', tr('bold'));
+  else if (kind === 'i') wrap('_', '_', tr('italic'));
   else if (kind === 'h') prefix('## ');
   else if (kind === 'ul') prefix('- ');
   else if (kind === 'task') prefix('- [ ] ');
@@ -1525,8 +1527,8 @@ function mdTool(kind) {
     const line = v.slice(v.lastIndexOf('\n', s - 1) + 1, le);
     if (!/#todo\s*$/i.test(line)) ta.setRangeText((line && !line.endsWith(' ') ? ' ' : '') + '#todo', le, le, 'end');
   }
-  else if (kind === 'link') wrap('[', '](https://)', 'text');
-  else if (kind === 'table') ta.setRangeText(`\n| What | Price | Note |\n|---|---|---|\n|  |  |  |\n`, s, e, 'end');
+  else if (kind === 'link') wrap('[', '](https://)', tr('text'));
+  else if (kind === 'table') ta.setRangeText(`\n| ${tr('What')} | ${tr('Price')} | ${tr('Note')} |\n|---|---|---|\n|  |  |  |\n`, s, e, 'end');
   else if (kind === 'preview') { togglePreview(); return; }
   ta.focus();
 }
@@ -1534,8 +1536,8 @@ async function togglePreview() {
   const pv = $('#ed-preview'), ta = $('#ed-body'), btn = $('#ed-prev-btn');
   if (pv.classList.contains('hidden')) {
     const r = await api('POST', '/api/markdown', { body: ta.value });
-    pv.innerHTML = r.html; pv.classList.remove('hidden'); ta.classList.add('hidden'); btn.textContent = 'Edit';
-  } else { pv.classList.add('hidden'); ta.classList.remove('hidden'); btn.textContent = 'Preview'; ta.focus(); }
+    pv.innerHTML = r.html; pv.classList.remove('hidden'); ta.classList.add('hidden'); btn.textContent = tr('Edit');
+  } else { pv.classList.add('hidden'); ta.classList.remove('hidden'); btn.textContent = tr('Preview'); ta.focus(); }
 }
 
 // ------------------------------------------------------------------ dragging: card → floor plan
@@ -1644,14 +1646,14 @@ async function action(a, el, e) {
     case 'room-done': U.editRoom = null; U.selVtx = null; renderAll(); break;
     case 'vtx-del': {
       const r = idx.room.get(U.editRoom);
-      if (r.points.length <= 3) { toast('A room needs at least three points', true); break; }
+      if (r.points.length <= 3) { toast(tr('A room needs at least three points'), true); break; }
       const pts = r.points.filter((_, i) => i !== U.selVtx); U.selVtx = null;
       patch('rooms', r.id, { points: pts }); break;
     }
     case 'room-edit': editRoomProps(U.mode === 'rooms' && U.editRoom ? U.editRoom : U.ctx.id); break;
     case 'room-del': {
       const r = idx.room.get(U.editRoom);
-      if (await confirmAsk(`Delete room “${r.name}”?`, 'Notes are kept and become “General”.')) {
+      if (await confirmAsk(tr('Delete room “{name}”?', { name: r.name }), tr('Notes are kept and become “General”.'))) {
         U.editRoom = null; U.ctx = { kind: 'all' }; await remove('rooms', r.id);
       }
       break;
@@ -1660,10 +1662,10 @@ async function action(a, el, e) {
     case 'room-focus': focusRoom(U.ctx.id); break;
     // zones
     case 'zone-new': {
-      const r = await ask({ title: 'New zone', text: 'A zone is your own group of rooms, e.g. “Ground floor wet rooms” or “Phase 1”.',
-        fields: [{ name: 'name', label: 'Name', placeholder: 'e.g. Living area' }, { name: 'color', label: 'Colour', type: 'color', value: ZONE_COLORS[D.zones.length % ZONE_COLORS.length], options: ZONE_COLORS }] });
+      const r = await ask({ title: tr('New zone'), text: tr('A zone is your own group of rooms, e.g. “Ground floor wet rooms” or “Phase 1”.'),
+        fields: [{ name: 'name', label: tr('Name'), placeholder: tr('e.g. Living area') }, { name: 'color', label: tr('Colour'), type: 'color', value: ZONE_COLORS[D.zones.length % ZONE_COLORS.length], options: ZONE_COLORS }] });
       if (!r) break;
-      const z = await create('zones', { name: r.name || 'Zone', color: r.color, room_ids: U.ctx.kind === 'room' ? [U.ctx.id] : [] });
+      const z = await create('zones', { name: r.name || tr('Zone'), color: r.color, room_ids: U.ctx.kind === 'room' ? [U.ctx.id] : [] });
       U.zonePick = z.id; setCtx({ kind: 'zone', id: z.id });
       break;
     }
@@ -1671,13 +1673,13 @@ async function action(a, el, e) {
     case 'zonepick-done': U.zonePick = null; renderAll(); break;
     case 'zone-edit': {
       const z = idx.zone.get(U.ctx.id);
-      const r = await ask({ title: 'Zone', fields: [{ name: 'name', label: 'Name', value: z.name }, { name: 'color', label: 'Colour', type: 'color', value: z.color, options: ZONE_COLORS }] });
+      const r = await ask({ title: tr('Zone'), fields: [{ name: 'name', label: tr('Name'), value: z.name }, { name: 'color', label: tr('Colour'), type: 'color', value: z.color, options: ZONE_COLORS }] });
       if (r) patch('zones', z.id, { name: r.name || z.name, color: r.color });
       break;
     }
     case 'zone-del': {
       const z = idx.zone.get(U.ctx.id);
-      if (await confirmAsk(`Delete zone “${z.name}”?`, 'The rooms are kept. The zone’s notes become “General”.')) {
+      if (await confirmAsk(tr('Delete zone “{name}”?', { name: z.name }), tr('The rooms are kept. The zone’s notes become “General”.'))) {
         U.zonePick = null; U.ctx = { kind: 'all' }; await remove('zones', z.id);
       }
       break;
@@ -1693,16 +1695,16 @@ async function action(a, el, e) {
     case 'note-cancel': cancelEdit(); break;
     case 'note-del': {
       const n = idx.note.get(U.openNote);
-      if (await confirmAsk(`Delete “${noteTitle(n)}”?`, 'Including photos and places on the floor plan.')) { U.openNote = null; await remove('notes', n.id); }
+      if (await confirmAsk(tr('Delete “{name}”?', { name: noteTitle(n) }), tr('Including photos and places on the floor plan.'))) { U.openNote = null; await remove('notes', n.id); }
       break;
     }
     case 'note-place':
-      if (!floor()) { toast('Upload a floor plan first', true); break; }
-      U.placeNote = U.openNote; renderMapChrome(); toast('Tap the floor plan'); break;
+      if (!floor()) { toast(tr('Upload a floor plan first'), true); break; }
+      U.placeNote = U.openNote; renderMapChrome(); toast(tr('Tap the floor plan')); break;
     case 'img-add': pickImages(files => uploadImages(U.openNote, files)); break;
     case 'img-url': askImageUrl(U.openNote); break;
     case 'url-new': askImageUrl(null); break;
-    case 'img-del': if (await confirmAsk('Delete photo?')) { await api('DELETE', `/api/images/${el.dataset.id}`); await load(); } break;
+    case 'img-del': if (await confirmAsk(tr('Delete photo?'))) { await api('DELETE', `/api/images/${el.dataset.id}`); await load(); } break;
     case 'pin-show': {
       const pm = idx.marker.get(el.dataset.id);
       if (pm.floor_id !== U.floorId) switchFloor(pm.floor_id);
@@ -1768,12 +1770,12 @@ function switchFloor(id) {
 
 async function floorMenu() {
   const f = floor();
-  const r = await ask({ title: 'Floor', fields: [{ name: 'name', label: 'Name', value: f.name }],
-    extra: [{ id: 'scale', label: 'Reset scale' }, { id: 'del', label: 'Delete', danger: true }] });
+  const r = await ask({ title: tr('Floor'), fields: [{ name: 'name', label: tr('Name'), value: f.name }],
+    extra: [{ id: 'scale', label: tr('Reset scale') }, { id: 'del', label: tr('Delete'), danger: true }] });
   if (!r) return;
   if (r._btn === 'scale') { setMode('scale'); return; }
   if (r._btn === 'del') {
-    if (await confirmAsk(`Delete “${f.name}”?`, 'All rooms, electrical fixtures and places on this floor will be removed. Notes are kept.')) await remove('floors', f.id);
+    if (await confirmAsk(tr('Delete “{name}”?', { name: f.name }), tr('All rooms, electrical fixtures and places on this floor will be removed. Notes are kept.'))) await remove('floors', f.id);
     return;
   }
   if (r.name && r.name !== f.name) patch('floors', f.id, { name: r.name });
@@ -1781,10 +1783,10 @@ async function floorMenu() {
 
 async function editRoomProps(id) {
   const r = idx.room.get(id); if (!r) return;
-  const res = await ask({ title: 'Room', fields: [
-    { name: 'name', label: 'Name', value: r.name },
-    { name: 'ceiling', label: 'Ceiling height (m, optional)', type: 'number', step: 'any', value: r.ceiling_height ?? '' },
-    { name: 'color', label: 'Colour', type: 'color', value: r.color, options: ROOM_COLORS }] });
+  const res = await ask({ title: tr('Room'), fields: [
+    { name: 'name', label: tr('Name'), value: r.name },
+    { name: 'ceiling', label: tr('Ceiling height (m, optional)'), type: 'number', step: 'any', value: r.ceiling_height != null ? nf(r.ceiling_height) : '' },
+    { name: 'color', label: tr('Colour'), type: 'color', value: r.color, options: ROOM_COLORS }] });
   if (!res) return;
   const ch = parseFloat(String(res.ceiling).replace(',', '.'));
   patch('rooms', r.id, { name: res.name || r.name, color: res.color, ceiling_height: ch > 0 ? ch : null });
@@ -1804,13 +1806,13 @@ $('#file-plan').addEventListener('change', async e => {
 async function uploadPlan(files) {
   const fd = new FormData();
   files.forEach(f => fd.append('files', f, f.name));
-  toast('Processing floor plan…');
+  toast(tr('Processing floor plan…'));
   const created = await api('POST', '/api/floors', fd);
   U.floorId = created[0]?.id ?? U.floorId;
   await load();
   fit();
   setMode('scale');
-  toast(`${created.length} floor${created.length > 1 ? 's' : ''} added — now set the scale`);
+  toast(trn(created.length, '{n} floor added — now set the scale', '{n} floors added — now set the scale'));
 }
 
 // dragging files: images onto the panel, PDF onto the map
@@ -1891,7 +1893,7 @@ document.addEventListener('keydown', e => {
 
 // ------------------------------------------------------------------ dialogs
 // Native <dialog>: the browser handles focus, Esc/back gesture and an inert page.
-function ask({ title, text, fields = [], ok = 'Save', cancel = 'Cancel', extra = [], safe = false }) {
+function ask({ title, text, fields = [], ok = tr('Save'), cancel = tr('Cancel'), extra = [], safe = false }) {
   return new Promise(resolve => {
     const m = $('#modal');
     // OK comes first in the DOM so Enter in a field picks it; .btns reverses the order visually.
@@ -1919,7 +1921,7 @@ function ask({ title, text, fields = [], ok = 'Save', cancel = 'Cancel', extra =
   });
 }
 async function confirmAsk(title, text) {
-  return !!(await ask({ title, text, ok: 'Yes, delete', cancel: 'No', safe: true }));
+  return !!(await ask({ title, text, ok: tr('Yes, delete'), cancel: tr('No'), safe: true }));
 }
 
 // ------------------------------------------------------------------ lightbox
@@ -1932,9 +1934,9 @@ function openLightbox(i) {
 function renderLightbox() {
   const lb = $('#lightbox'), im = LB.imgs[LB.i];
   lb.innerHTML = `<img src="/files/${im.file}" alt="">
-    <form method="dialog"><button class="close" aria-label="Close" autofocus>×</button></form>
-    ${LB.imgs.length > 1 ? '<button class="prev" aria-label="Previous photo">‹</button><button class="next" aria-label="Next photo">›</button>' : ''}
-    <span class="lbmeta"><a href="/files/${im.orig}" target="_blank" rel="noopener">Original (${LB.i + 1}/${LB.imgs.length})</a>${im.source ? ` · <a href="${esc(im.source)}" target="_blank" rel="noopener noreferrer">Source: ${esc(new URL(im.source).hostname)}</a>` : ''}</span>`;
+    <form method="dialog"><button class="close" aria-label="${tr('Close')}" autofocus>×</button></form>
+    ${LB.imgs.length > 1 ? `<button class="prev" aria-label="${tr('Previous photo')}">‹</button><button class="next" aria-label="${tr('Next photo')}">›</button>` : ''}
+    <span class="lbmeta"><a href="/files/${im.orig}" target="_blank" rel="noopener">${tr('Original')} (${LB.i + 1}/${LB.imgs.length})</a>${im.source ? ` · <a href="${esc(im.source)}" target="_blank" rel="noopener noreferrer">${tr('Source:')} ${esc(new URL(im.source).hostname)}</a>` : ''}</span>`;
   $('.prev', lb) && ($('.prev', lb).onclick = () => stepLightbox(-1));
   $('.next', lb) && ($('.next', lb).onclick = () => stepLightbox(1));
   $('img', lb).onclick = closeLightbox;
@@ -1967,16 +1969,42 @@ $('#hint').addEventListener('click', e => {
   const a = e.target.closest('[data-act]');
   if (a) action(a.dataset.act, a, e);
 });
-$('#split').onclick = () => {
-  const order = ['50dvh', '78dvh', '30dvh'];
-  const cur = store.get('mapH', '50dvh');
-  const next = order[(order.indexOf(cur) + 1) % order.length];
-  store.set('mapH', next);
-  document.documentElement.style.setProperty('--mapH', next);
-  setTimeout(fit, 220);
-};
+// Phone: drag the handle to divide the screen between map and panel.
+$('#split').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const h = $('#split'), wrap = $('#mapwrap');
+  h.setPointerCapture(e.pointerId);
+  const top = wrap.getBoundingClientRect().top, vh = innerHeight;
+  const dy = e.clientY - wrap.getBoundingClientRect().bottom;
+  document.body.classList.add('splitting');
+  const move = ev => {
+    const px = Math.max(vh * .18, Math.min(vh * .85, ev.clientY - dy - top));
+    const v = (px / vh * 100).toFixed(1) + 'dvh';
+    document.documentElement.style.setProperty('--mapH', v);
+    store.set('mapH', v);
+  };
+  const end = () => {
+    h.removeEventListener('pointermove', move);
+    document.body.classList.remove('splitting');
+  };
+  h.addEventListener('pointermove', move);
+  h.addEventListener('pointerup', end, { once: true });
+  h.addEventListener('pointercancel', end, { once: true });
+});
 document.documentElement.style.setProperty('--mapH', store.get('mapH', '50dvh'));
-new ResizeObserver(() => { if (!floor()) return; if (!fit.done) { fit(); fit.done = true; } else applyView(); }).observe($('#mapwrap'));
+// On a size change keep the zoom and keep the same spot in the middle of the map.
+let mapSize = null;
+new ResizeObserver(() => {
+  const r = mapRect();
+  if (floor() && !fit.done) { fit(); fit.done = true; }
+  else if (mapSize && r.width && r.height) { V.tx += (r.width - mapSize[0]) / 2; V.ty += (r.height - mapSize[1]) / 2; applyView(); }
+  if (r.width && r.height) mapSize = [r.width, r.height];
+}).observe($('#mapwrap'));
+
+// Language switch (reloads; the choice is also sent to the server for the login page).
+$('#lang').textContent = LANG === 'nl' ? 'EN' : 'NL';
+$('#lang').title = LANG === 'nl' ? 'Switch to English' : 'Schakel naar Nederlands';
+$('#lang').onclick = () => setLang(LANG === 'nl' ? 'en' : 'nl');
 
 function renderAll() {
   renderMap();

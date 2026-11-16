@@ -60,8 +60,21 @@ pub async fn require_user(State(s): State<AppState>, mut req: Request, next: Nex
     }
 }
 
-pub async fn login_page() -> Html<String> {
-    Html(page(""))
+pub async fn login_page(headers: HeaderMap) -> Html<String> {
+    Html(page(dutch(&headers), false))
+}
+
+/// Language of the login page: the `gp_lang` cookie (set by the language switch in the
+/// app), otherwise the browser's preferred language.
+fn dutch(headers: &HeaderMap) -> bool {
+    let cookie = headers.get_all(header::COOKIE).iter().filter_map(|v| v.to_str().ok());
+    for c in cookie.flat_map(|v| v.split(';')) {
+        if let Some(l) = c.trim().strip_prefix("gp_lang=") {
+            return l == "nl";
+        }
+    }
+    let accept = headers.get(header::ACCEPT_LANGUAGE).and_then(|v| v.to_str().ok()).unwrap_or("");
+    accept.split(',').next().is_some_and(|l| l.trim().to_ascii_lowercase().starts_with("nl"))
 }
 
 #[derive(Deserialize)]
@@ -70,7 +83,7 @@ pub struct LoginForm {
     password: String,
 }
 
-pub async fn login(State(s): State<AppState>, Form(f): Form<LoginForm>) -> Response {
+pub async fn login(State(s): State<AppState>, headers: HeaderMap, Form(f): Form<LoginForm>) -> Response {
     let name = f.name.trim().to_string();
     let found = {
         let c = s.db.lock().unwrap();
@@ -82,7 +95,7 @@ pub async fn login(State(s): State<AppState>, Form(f): Form<LoginForm>) -> Respo
     };
     if !ok {
         tokio::time::sleep(std::time::Duration::from_millis(700)).await;
-        return (StatusCode::UNAUTHORIZED, Html(page("Wrong name or password."))).into_response();
+        return (StatusCode::UNAUTHORIZED, Html(page(dutch(&headers), true))).into_response();
     }
     let mut bytes = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut bytes);
@@ -112,16 +125,22 @@ pub async fn logout(State(s): State<AppState>, headers: HeaderMap) -> Response {
         .into_response()
 }
 
-fn page(error: &str) -> String {
-    let err = if error.is_empty() {
-        String::new()
+fn page(nl: bool, failed: bool) -> String {
+    let t = |en: &'static str, nl_text: &'static str| if nl { nl_text } else { en };
+    let lang = t("en", "nl");
+    let title = t("sign in", "inloggen");
+    let name = t("Name", "Naam");
+    let password = t("Password", "Wachtwoord");
+    let submit = t("Sign in", "Inloggen");
+    let err = if failed {
+        format!("<p class=\"err\">{}</p>", t("Wrong name or password.", "Onjuiste naam of wachtwoord."))
     } else {
-        format!("<p class=\"err\">{error}</p>")
+        String::new()
     };
     format!(
-        r##"<!doctype html><html lang="en"><head><meta charset="utf-8">
+        r##"<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grote Plan — sign in</title><link rel="icon" href="/icon.svg">
+<title>Grote Plan — {title}</title><link rel="icon" href="/icon.svg">
 <style>
 :root{{--bg:#f4f1ea;--ink:#23211d;--muted:#7a756b;--acc:#c4572e;--card:#fffdf8;--line:#ddd6c8}}
 *{{box-sizing:border-box}}body{{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);
@@ -139,9 +158,9 @@ button{{font:inherit;font-weight:600;padding:11px;border:0;border-radius:8px;bac
 <form method="post" action="/login">
 <h1>Grote <span>Plan</span></h1>
 {err}
-<label>Name<input name="name" autocomplete="username" autocapitalize="none" required autofocus></label>
-<label>Password<input name="password" type="password" autocomplete="current-password" required></label>
-<button>Sign in</button>
+<label>{name}<input name="name" autocomplete="username" autocapitalize="none" required autofocus></label>
+<label>{password}<input name="password" type="password" autocomplete="current-password" required></label>
+<button>{submit}</button>
 </form></body></html>"##
     )
 }
